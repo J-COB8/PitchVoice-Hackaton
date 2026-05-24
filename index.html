@@ -1,0 +1,3242 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PitchVoice — Practice high-stakes conversations</title>
+  <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web/dist/vapi.sdk.js"></script>
+  <style>
+    :root {
+      --purple: #534AB7;
+      --purple-deep: #3C3489;
+      --purple-soft: #EEEDFE;
+      --purple-line: #C9C4F1;
+      --purple-glow: rgba(83, 74, 183, 0.35);
+      --green: #1D9E75;
+      --green-soft: #E6F4EE;
+      --coral: #D85A30;
+      --coral-soft: #FBEAE2;
+      --red: #E24B4A;
+      --red-soft: #FCEBEB;
+      --red-text: #A32D2D;
+      --ink: #1A1A1F;
+      --ink-2: #4A4A55;
+      --ink-3: #7A7A85;
+      --ink-4: #A8A8B2;
+      --bg: #FAFAFB;
+      --surface: #FFFFFF;
+      --surface-2: #F5F5F7;
+      --line: rgba(20, 20, 30, 0.08);
+      --line-strong: rgba(20, 20, 30, 0.14);
+      --r-sm: 6px;
+      --r-md: 8px;
+      --r-lg: 12px;
+      --r-xl: 16px;
+      --dur-fast: 140ms;
+      --dur: 240ms;
+      --dur-slow: 420ms;
+      --ease: cubic-bezier(.16, 1, .3, 1);
+      --spring: cubic-bezier(.34, 1.56, .64, 1);
+      --font: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .cursor-dot,
+    .cursor-ring {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      will-change: transform;
+    }
+
+    .cursor-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--purple);
+      transition: width 240ms var(--spring), height 240ms var(--spring), opacity 240ms;
+    }
+
+    .cursor-ring {
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid var(--purple);
+      opacity: 0.35;
+      transition: width 240ms var(--spring), height 240ms var(--spring), opacity 240ms;
+      mix-blend-mode: multiply;
+    }
+
+    .cursor-ring.hover {
+      width: 56px;
+      height: 56px;
+      opacity: 0.6;
+      border-color: var(--purple);
+    }
+
+    @media (pointer: coarse) {
+
+      .cursor-dot,
+      .cursor-ring {
+        display: none;
+      }
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 24px 80px;
+    }
+
+    .tag-eyebrow {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 28px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tag-eyebrow::after {
+      content: "";
+      flex: 1;
+      height: 0.5px;
+      background: var(--line-strong);
+    }
+
+    .screen {
+      background: var(--surface);
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen+.tag-eyebrow {
+      margin-top: 36px;
+    }
+
+    .btn {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: var(--r-md);
+      border: 0.5px solid var(--line-strong);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      will-change: transform;
+    }
+
+    .btn:hover {
+      background: var(--surface-2);
+    }
+
+    .btn-primary {
+      background: var(--purple);
+      border-color: var(--purple);
+      color: #fff;
+      box-shadow: 0 8px 24px -8px var(--purple-glow);
+    }
+
+    .btn-primary:hover {
+      background: #463EA3;
+      border-color: #463EA3;
+    }
+
+    .btn-lg {
+      font-size: 14px;
+      padding: 11px 22px;
+    }
+
+    .btn-magnetic {
+      will-change: transform;
+    }
+
+    .ico {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.75;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .ico-lg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .ico-xl {
+      width: 28px;
+      height: 28px;
+      stroke-width: 1.6;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 0.5px solid var(--line);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: saturate(1.4) blur(8px);
+      -webkit-backdrop-filter: saturate(1.4) blur(8px);
+      position: relative;
+      z-index: 2;
+    }
+
+    .logo {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo .logo-mark {
+      width: 22px;
+      height: 22px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .logo .logo-mark svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .logo span {
+      color: var(--purple);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      color: var(--ink-2);
+      transition: color var(--dur-fast) var(--ease);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -4px;
+      height: 1px;
+      background: var(--purple);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform var(--dur) var(--ease);
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+    }
+
+    .nav-links a:hover::after {
+      transform: scaleX(1);
+    }
+
+    .nav-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .hero {
+      padding: 96px 32px 56px;
+      text-align: center;
+      border-bottom: 0.5px solid var(--line);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-orbs {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .hero-orbs canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hero>*:not(.hero-orbs) {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: var(--purple-soft);
+      color: var(--purple-deep);
+      margin-bottom: 24px;
+      border: 0.5px solid var(--purple-line);
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--purple);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      font-weight: 500;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin: 0 0 18px;
+      max-width: 780px;
+      margin-left: auto;
+      margin-right: auto;
+      text-wrap: balance;
+    }
+
+    .hero h1 .word {
+      display: inline-block;
+      animation: wordIn 700ms var(--ease) forwards;
+    }
+
+    .hero h1 .word:nth-child(1) {
+      animation-delay: 80ms;
+    }
+
+    .hero h1 .word:nth-child(2) {
+      animation-delay: 160ms;
+    }
+
+    .hero h1 .word:nth-child(3) {
+      animation-delay: 240ms;
+    }
+
+    .hero h1 .word:nth-child(4) {
+      animation-delay: 380ms;
+    }
+
+    .hero h1 .word:nth-child(5) {
+      animation-delay: 460ms;
+    }
+
+    .hero h1 .word:nth-child(6) {
+      animation-delay: 540ms;
+    }
+
+    .hero h1 .word:nth-child(7) {
+      animation-delay: 620ms;
+    }
+
+    .hero h1 .word:nth-child(8) {
+      animation-delay: 700ms;
+    }
+
+    .hero h1 .accent {
+      position: relative;
+      color: var(--purple);
+    }
+
+    .hero h1 .accent::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 4px;
+      height: 8px;
+      background: var(--purple-soft);
+      z-index: -1;
+      transform: scaleX(0);
+      transform-origin: left;
+      animation: underlineIn 800ms var(--ease) 900ms forwards;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--ink-2);
+      max-width: 540px;
+      margin: 0 auto 32px;
+      line-height: 1.55;
+      text-wrap: pretty;
+      animation: fadeUp 700ms var(--ease) 900ms forwards;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      animation: fadeUp 700ms var(--ease) 1100ms forwards;
+    }
+
+    .scenarios-wrap {
+      padding: 36px 32px 44px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .scenarios-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .scenarios-head h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ink);
+    }
+
+    .scenarios-head span {
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+
+    .scenarios {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      perspective: 1000px;
+    }
+
+    .scenario-card {
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-lg);
+      padding: 22px 18px;
+      text-align: left;
+      cursor: pointer;
+      background: var(--surface);
+      transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+      position: relative;
+      transform-style: preserve-3d;
+      will-change: transform;
+      overflow: hidden;
+    }
+
+    .scenario-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(83, 74, 183, 0.10), transparent 50%);
+      opacity: 0;
+      transition: opacity var(--dur) var(--ease);
+      pointer-events: none;
+    }
+
+    .scenario-card:hover {
+      background: var(--surface);
+      box-shadow: 0 12px 32px -16px rgba(83, 74, 183, 0.25);
+    }
+
+    .scenario-card:hover::before {
+      opacity: 1;
+    }
+
+    .scenario-card.active {
+      border: 1.5px solid var(--purple);
+      background: var(--purple-soft);
+      padding: 21.5px 17.5px;
+    }
+
+    .scenario-card.active .scenario-icon {
+      background: var(--purple);
+      color: #fff;
+      transform: rotate(0deg) scale(1.05);
+    }
+
+    .scenario-card.active .scenario-check {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .scenario-card-inner {
+      position: relative;
+      z-index: 1;
+      transform: translateZ(20px);
+    }
+
+    .scenario-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--r-md);
+      background: var(--purple-soft);
+      color: var(--purple);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      transition: background var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--spring);
+    }
+
+    .scenario-card h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .scenario-card p {
+      font-size: 12px;
+      color: var(--ink-3);
+      margin: 0;
+    }
+
+    .scenario-check {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity var(--dur) var(--ease), transform var(--dur) var(--spring);
+      z-index: 2;
+    }
+
+    .scenario-check svg {
+      width: 11px;
+      height: 11px;
+      stroke-width: 3;
+    }
+
+    /* HOW IT WORKS */
+    .how-section {
+      padding: 56px 48px;
+    }
+
+    .how-section h3 {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+
+    .how-section>p {
+      font-size: 14px;
+      color: var(--ink-3);
+      margin: 0 0 40px;
+    }
+
+    .how-steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+    }
+
+    .how-step {
+      text-align: center;
+    }
+
+    .how-step-num {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--purple-soft);
+      border: 1.5px solid var(--purple-line);
+      color: var(--purple);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+
+    .how-step h4 {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 0 0 8px;
+    }
+
+    .how-step p {
+      font-size: 13px;
+      color: var(--ink-3);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .how-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 22px;
+      color: var(--ink-4);
+    }
+
+    /* SESSION */
+    .session-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 0.5px solid var(--line);
+      background: var(--surface);
+    }
+
+    .session-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .session-title .logo {
+      font-size: 14px;
+    }
+
+    .session-meta {
+      font-size: 12px;
+      color: var(--ink-3);
+      padding-left: 12px;
+      border-left: 0.5px solid var(--line-strong);
+    }
+
+    .session-meta strong {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .session-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px 4px 8px;
+      border-radius: 999px;
+      background: var(--red-soft);
+      color: var(--red-text);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dot-red {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .session-body {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      min-height: 520px;
+    }
+
+    .session-left {
+      padding: 28px 28px 24px;
+      border-right: 0.5px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(ellipse 70% 50% at 50% 60%, rgba(83, 74, 183, 0.06), transparent 70%), var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      position: relative;
+      z-index: 2;
+    }
+
+    .ai-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px -4px var(--purple-glow);
+    }
+
+    .ai-bubble-wrap {
+      max-width: 520px;
+    }
+
+    .ai-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--purple-deep);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .ai-bubble {
+      background: var(--purple-soft);
+      border: 0.5px solid var(--purple-line);
+      border-radius: 4px var(--r-lg) var(--r-lg) var(--r-lg);
+      padding: 14px 16px;
+      font-size: 15px;
+      color: var(--purple-deep);
+      line-height: 1.5;
+      transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+    }
+
+    .ai-bubble.fading {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    .orb-stage {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .orb-stage canvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .orb-caption {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+
+    .orb-caption .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .user-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding-top: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .mic-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mic-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--purple);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform var(--dur-fast) var(--ease), background var(--dur) var(--ease);
+      box-shadow: 0 12px 28px -10px var(--purple-glow);
+    }
+
+    .mic-btn:hover {
+      background: #463EA3;
+    }
+
+    .mic-btn:active {
+      transform: scale(0.95);
+    }
+
+    .mic-btn.active::before,
+    .mic-btn.active::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--purple);
+      opacity: 0;
+      animation: ring 1.8s ease-out infinite;
+    }
+
+    .mic-btn.active::after {
+      animation-delay: 0.9s;
+    }
+
+    .mic-btn svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .mic-hint {
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+
+    .mic-hint strong {
+      color: var(--purple);
+      font-weight: 500;
+    }
+
+    .session-right {
+      padding: 22px 22px;
+      background: var(--surface);
+    }
+
+    .live-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .live-label::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .metric-row {
+      margin-bottom: 22px;
+    }
+
+    .metric-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 7px;
+    }
+
+    .metric-name {
+      font-size: 12px;
+      color: var(--ink-2);
+    }
+
+    .metric-val {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      transition: color var(--dur) var(--ease);
+    }
+
+    .metric-val.up {
+      color: var(--green);
+    }
+
+    .metric-val.down {
+      color: var(--coral);
+    }
+
+    .bar-bg {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--surface-2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      position: relative;
+      transition: width var(--dur-slow) var(--ease), background var(--dur) var(--ease);
+      overflow: hidden;
+    }
+
+    .bar-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      animation: shimmer 2.4s linear infinite;
+    }
+
+    .filler-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      min-height: 24px;
+    }
+
+    .pill {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--coral-soft);
+      color: #8C3A1C;
+      font-variant-numeric: tabular-nums;
+      animation: pillIn 420ms var(--spring) both;
+    }
+
+    .pill.bump {
+      animation: bump 500ms var(--spring);
+    }
+
+    .timeline {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 0.5px solid var(--line);
+    }
+
+    .timeline-head {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 11px;
+      animation: slidein 480ms var(--spring) both;
+    }
+
+    .timeline-time {
+      font-size: 11px;
+      color: var(--ink-3);
+      font-variant-numeric: tabular-nums;
+      min-width: 30px;
+      margin-top: 1px;
+      font-weight: 500;
+    }
+
+    .timeline-text {
+      font-size: 12px;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    .timeline-text .kind {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 7px;
+      vertical-align: middle;
+      transform: translateY(-1px);
+    }
+
+    .kind.warn {
+      background: var(--coral);
+      box-shadow: 0 0 0 0 rgba(216, 90, 48, 0.4);
+      animation: pulseRing 2s ease-out infinite;
+    }
+
+    .kind.good {
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.4);
+      animation: pulseRing 2s ease-out infinite;
+    }
+
+    .kind.info {
+      background: var(--purple);
+      box-shadow: 0 0 0 0 rgba(83, 74, 183, 0.4);
+      animation: pulseRing 2s ease-out infinite;
+    }
+
+    .timeline-empty {
+      font-size: 12px;
+      color: var(--ink-4);
+      font-style: italic;
+    }
+
+    /* REPORT */
+    .report-header {
+      padding: 32px 28px 24px;
+      border-bottom: 0.5px solid var(--line);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .report-header::before {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -40px;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, var(--purple-soft), transparent 65%);
+      pointer-events: none;
+    }
+
+    .report-header>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .report-header h3 {
+      font-size: 24px;
+      font-weight: 500;
+      margin: 0 0 4px;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .report-header .session-line {
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+
+    .readiness {
+      text-align: right;
+    }
+
+    .readiness-score {
+      font-size: 64px;
+      font-weight: 500;
+      color: var(--purple);
+      line-height: 1;
+      letter-spacing: -0.035em;
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: baseline;
+    }
+
+    .readiness-score .of {
+      font-size: 20px;
+      color: var(--ink-4);
+      font-weight: 400;
+    }
+
+    .readiness-label {
+      font-size: 11px;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 6px;
+      font-weight: 600;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      padding: 24px 28px;
+      border-bottom: 0.5px solid var(--line);
+    }
+
+    .report-card {
+      background: var(--surface);
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-lg);
+      padding: 20px 20px 18px;
+      transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+      cursor: pointer;
+    }
+
+    .report-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px -14px rgba(20, 20, 30, 0.15);
+    }
+
+    .report-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .report-card-label {
+      font-size: 11px;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .report-card-icon {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--r-sm);
+      color: var(--purple);
+      background: var(--purple-soft);
+    }
+
+    .report-card-val {
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .report-card-val.coral {
+      color: var(--coral);
+    }
+
+    .report-card-val.green {
+      color: var(--green);
+    }
+
+    .report-card-sub {
+      font-size: 12px;
+      color: var(--ink-3);
+      line-height: 1.45;
+    }
+
+    .spark {
+      margin-top: 14px;
+      height: 32px;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .spark polyline {
+      stroke-dasharray: 280;
+      stroke-dashoffset: 280;
+      transition: stroke-dashoffset 1800ms var(--ease);
+    }
+
+    .spark.in-view polyline {
+      stroke-dashoffset: 0;
+    }
+
+    .replay-section {
+      padding: 26px 28px 32px;
+    }
+
+    .replay-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .replay-label .q {
+      color: var(--ink);
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .replay-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .replay-box {
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-lg);
+      padding: 18px 20px;
+      background: var(--surface);
+      position: relative;
+      transition: transform var(--dur) var(--ease);
+    }
+
+    .replay-box:hover {
+      transform: translateY(-2px);
+    }
+
+    .replay-box-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .replay-box-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-3);
+      font-weight: 600;
+    }
+
+    .replay-time {
+      font-size: 11px;
+      color: var(--ink-4);
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .replay-box p {
+      font-size: 13.5px;
+      color: var(--ink-2);
+      line-height: 1.65;
+      margin: 0;
+    }
+
+    .replay-box.ideal {
+      border-color: var(--purple-line);
+      background: var(--purple-soft);
+    }
+
+    .replay-box.ideal p {
+      color: var(--purple-deep);
+    }
+
+    .replay-box.ideal .replay-box-label {
+      color: var(--purple);
+    }
+
+    .filler-hl {
+      background: var(--coral-soft);
+      color: #8C3A1C;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 500;
+      position: relative;
+    }
+
+    .report-footer {
+      padding: 20px 28px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface-2);
+      border-top: 0.5px solid var(--line);
+    }
+
+    .report-footer-note {
+      font-size: 12px;
+      color: var(--ink-3);
+    }
+
+    /* MODAL SYSTEM */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(10, 10, 20, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    #modal-overlay.open {
+      display: flex;
+      animation: fadeIn 200ms ease;
+    }
+
+    .modal-card {
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      border: 0.5px solid var(--line-strong);
+      max-width: 500px;
+      width: calc(100% - 32px);
+      padding: 32px;
+      position: relative;
+      animation: scaleIn 240ms var(--spring);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 0.5px solid var(--line);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink-3);
+      font-size: 14px;
+      transition: background var(--dur-fast);
+    }
+
+    .modal-close:hover {
+      background: var(--line-strong);
+      color: var(--ink);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--ink-3);
+      margin: 0 0 24px;
+    }
+
+    .modal-tabs {
+      display: flex;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-tab {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      cursor: pointer;
+      color: var(--ink-3);
+      transition: color var(--dur-fast), border-color var(--dur-fast);
+      font-family: var(--font);
+    }
+
+    .modal-tab.active {
+      color: var(--purple);
+      border-color: var(--purple);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink-2);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-family: var(--font);
+      background: var(--surface);
+      color: var(--ink);
+      outline: none;
+      transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+    }
+
+    .form-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.12);
+    }
+
+    .form-error {
+      font-size: 12px;
+      color: var(--red);
+      margin-top: 4px;
+      display: none;
+      margin-bottom: 12px;
+    }
+
+    .form-link {
+      font-size: 12px;
+      color: var(--ink-3);
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .form-link a {
+      color: var(--purple);
+      cursor: pointer;
+    }
+
+    .form-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* NAV AVATAR */
+    .nav-avatar-wrap {
+      position: relative;
+    }
+
+    .nav-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .nav-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-md);
+      padding: 4px;
+      min-width: 140px;
+      box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.15);
+      z-index: 100;
+      display: none;
+    }
+
+    .nav-dropdown.open {
+      display: block;
+      animation: scaleIn 180ms var(--spring);
+    }
+
+    .nav-dropdown button {
+      width: 100%;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 13px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--r-sm);
+      color: var(--ink);
+      font-family: var(--font);
+    }
+
+    .nav-dropdown button:hover {
+      background: var(--surface-2);
+    }
+
+    /* TOAST */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      min-width: 260px;
+      max-width: 360px;
+      padding: 12px 16px;
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.2);
+      pointer-events: all;
+      color: #fff;
+    }
+
+    .toast.success {
+      background: var(--green);
+    }
+
+    .toast.error {
+      background: var(--coral);
+    }
+
+    .toast.info {
+      background: var(--purple);
+    }
+
+    .toast-enter {
+      animation: toastIn 320ms var(--spring) forwards;
+    }
+
+    .toast-exit {
+      animation: toastOut 280ms var(--ease) forwards;
+    }
+
+    /* PRICING */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 0;
+    }
+
+    .pricing-card {
+      border: 0.5px solid var(--line-strong);
+      border-radius: var(--r-lg);
+      padding: 20px;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--purple);
+      background: var(--purple-soft);
+    }
+
+    .pricing-card h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 2px;
+    }
+
+    .pricing-card .pricing-tag {
+      font-size: 11px;
+      color: var(--ink-3);
+      margin: 0 0 10px;
+    }
+
+    .pricing-price {
+      font-size: 26px;
+      font-weight: 500;
+      color: var(--purple);
+      margin: 10px 0;
+      letter-spacing: -0.02em;
+    }
+
+    .pricing-price sub {
+      font-size: 13px;
+      color: var(--ink-3);
+      font-weight: 400;
+      vertical-align: baseline;
+    }
+
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px;
+      font-size: 12px;
+      color: var(--ink-2);
+    }
+
+    .pricing-features li {
+      padding: 3px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pricing-features li::before {
+      content: "✓";
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* DEMO VIDEO */
+    .demo-video-box {
+      background: #0d0d14;
+      border-radius: var(--r-lg);
+      aspect-ratio: 16/9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .demo-play-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ANIMATIONS */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.85);
+      }
+    }
+
+    @keyframes ring {
+      0% {
+        transform: scale(1);
+        opacity: 0.55;
+      }
+
+      100% {
+        transform: scale(1.8);
+        opacity: 0;
+      }
+    }
+
+    @keyframes bump {
+      0% {
+        transform: scale(1);
+      }
+
+      40% {
+        transform: scale(1.18);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @keyframes slidein {
+      from {
+        opacity: 0;
+        transform: translateX(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes pillIn {
+      from {
+        opacity: 0;
+        transform: scale(0.5) translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes wordIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes underlineIn {
+      from {
+        transform: scaleX(0);
+      }
+
+      to {
+        transform: scaleX(1);
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-100%);
+      }
+
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    @keyframes pulseRing {
+      0% {
+        box-shadow: 0 0 0 0 currentColor;
+      }
+
+      70% {
+        box-shadow: 0 0 0 6px transparent;
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 transparent;
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.94);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(32px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(32px);
+      }
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    @media (max-width: 880px) {
+      .scenarios {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .session-body {
+        grid-template-columns: 1fr;
+      }
+
+      .session-left {
+        border-right: none;
+        border-bottom: 0.5px solid var(--line);
+      }
+
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .replay-row {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .readiness-score {
+        font-size: 48px;
+      }
+
+      .how-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+  <div class="cursor-dot" id="cursor-dot"></div>
+  <div class="cursor-ring" id="cursor-ring"></div>
+  <div id="modal-overlay"></div>
+  <div id="toast-container"></div>
+
+  <div class="shell">
+
+    <!-- SCREEN 1: LANDING -->
+    <div class="tag-eyebrow" style="margin-top:0;">Screen 1 — Landing / scenario selection</div>
+    <section class="screen" data-screen-label="01 Landing">
+      <nav class="nav">
+        <div class="logo">
+          <span class="logo-mark">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" fill="var(--purple-soft)" />
+              <path d="M8 9 Q10 6 12 9 T16 9" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"
+                fill="none" />
+              <path d="M8 13 Q10 10 12 13 T16 13" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"
+                fill="none" opacity="0.6" />
+              <path d="M8 17 Q10 14 12 17 T16 17" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"
+                fill="none" opacity="0.3" />
+            </svg>
+          </span>
+          Pitch<span>Voice</span>
+        </div>
+        <div class="nav-links">
+          <a id="nav-how-link">How it works</a>
+          <a id="nav-scenarios-link">Scenarios</a>
+          <a id="nav-pricing-link">Pricing</a>
+          <a href="#">For teams</a>
+        </div>
+        <div class="nav-right" id="nav-right">
+          <button class="btn" id="login-btn">Log in</button>
+          <button class="btn btn-primary btn-magnetic" id="signup-btn">Get started</button>
+        </div>
+      </nav>
+
+      <div class="hero">
+        <div class="hero-orbs"><canvas id="hero-canvas"></canvas></div>
+        <div class="hero-badge">
+          <span class="dot"></span>
+          AI voice simulation platform
+        </div>
+        <h1 id="hero-headline"><span class="word">Practice</span> <span class="word">high-stakes</span> <span
+            class="word">conversations.</span><br /><span class="word">Before</span> <span class="word">they</span>
+          <span class="word accent">actually&nbsp;matter</span><span class="word">.</span></h1>
+        <p>Speak with an AI that interrupts, challenges and pressures you — just like the real thing. Watch yourself
+          analyzed in real time, then study the replay.</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary btn-lg btn-magnetic" data-action="start-session">Start a free session</button>
+          <button class="btn btn-lg btn-magnetic" id="watch-demo-btn">
+            <svg class="ico" viewBox="0 0 24 24">
+              <polygon points="6 4 20 12 6 20 6 4"></polygon>
+            </svg>
+            Watch demo
+          </button>
+        </div>
+      </div>
+
+      <div class="scenarios-wrap">
+        <div class="scenarios-head">
+          <h3>Choose a scenario to start</h3>
+          <span>4 scenarios · more coming soon</span>
+        </div>
+        <div class="scenarios" id="scenarios"></div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <div class="tag-eyebrow" id="how-it-works-label">How it works</div>
+    <section class="screen" id="how-it-works">
+      <div class="how-section">
+        <h3>Three steps to sharper conversations</h3>
+        <p>No prep needed. Just show up and speak.</p>
+        <div class="how-steps">
+          <div class="how-step">
+            <div class="how-step-num">1</div>
+            <h4>Choose your scenario</h4>
+            <p>Pick from investor pitch, job interview, sales call, or admissions panel. Each scenario has a unique AI
+              persona trained to pressure-test you.</p>
+          </div>
+          <div class="how-step">
+            <div class="how-step-num">2</div>
+            <h4>Speak with the AI agent</h4>
+            <p>Have a real voice conversation. The AI interrupts, challenges weak answers, and adapts dynamically — just
+              like the real thing.</p>
+          </div>
+          <div class="how-step">
+            <div class="how-step-num">3</div>
+            <h4>Review your Mirror Report</h4>
+            <p>Get a scored breakdown of your confidence, pacing, filler words, and key moments. See exactly where you
+              won and where you lost the room.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: LIVE SESSION -->
+    <div class="tag-eyebrow">Screen 2 — Live session (core experience)</div>
+    <section class="screen" id="session-screen" data-screen-label="02 Live session">
+      <div class="session-top">
+        <div class="session-title">
+          <div class="logo">Pitch<span>Voice</span></div>
+          <div class="session-meta"><strong id="session-name">Investor pitch</strong> · <span id="session-mode">Y
+              Combinator style</span></div>
+        </div>
+        <div class="session-controls">
+          <button class="btn" id="end-btn">End session</button>
+          <div class="live-badge">
+            <span class="dot-red"></span>
+            Live · <span id="timer">0:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="session-body">
+        <div class="session-left">
+          <div class="ai-row">
+            <div class="ai-avatar">AI</div>
+            <div class="ai-bubble-wrap">
+              <div class="ai-name" id="ai-name">Marcus · Partner, Sequoia</div>
+              <div class="ai-bubble" id="ai-bubble">…</div>
+            </div>
+          </div>
+          <div class="orb-stage">
+            <canvas id="orb-canvas" width="520" height="380"></canvas>
+            <div class="orb-caption">
+              <span class="live-dot"></span>
+              <span id="orb-caption-text">Listening · interpreting tone & pacing</span>
+            </div>
+          </div>
+          <div class="user-stage">
+            <div class="mic-area">
+              <button class="mic-btn" id="mic-btn" aria-label="Toggle microphone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                  <path d="M5 10a7 7 0 0 0 14 0"></path>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+              </button>
+              <div class="mic-hint"><strong>Click mic to start</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="session-right">
+          <div class="live-label">Live analysis</div>
+          <div class="metric-row">
+            <div class="metric-top">
+              <span class="metric-name">Confidence</span>
+              <span class="metric-val" id="conf-val">72%</span>
+            </div>
+            <div class="bar-bg">
+              <div class="bar-fill" id="conf-bar" style="width:72%;background:var(--purple);"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-top">
+              <span class="metric-name">Pacing</span>
+              <span class="metric-val" id="pace-val">Good</span>
+            </div>
+            <div class="bar-bg">
+              <div class="bar-fill" id="pace-bar" style="width:78%;background:var(--green);"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-top">
+              <span class="metric-name">Filler words</span>
+              <span class="metric-val" id="filler-total">0 detected</span>
+            </div>
+            <div class="filler-pills" id="filler-pills"></div>
+          </div>
+          <div class="timeline">
+            <div class="timeline-head">Session timeline</div>
+            <div id="timeline-list">
+              <div class="timeline-empty">Events will appear as you speak…</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: MIRROR REPORT -->
+    <div class="tag-eyebrow">Screen 3 — Mirror report (post-session)</div>
+    <section class="screen" data-screen-label="03 Mirror report">
+      <div class="report-header">
+        <div>
+          <h3>Mirror report</h3>
+          <div class="session-line"><span id="report-scenario">Investor pitch</span> · <span id="report-mode">Y
+              Combinator style</span> · <span id="report-duration">0:00</span> · <span id="report-date"></span></div>
+        </div>
+        <div class="readiness">
+          <div class="readiness-score"><span id="readiness-num">0</span><span class="of"> / 100</span></div>
+          <div class="readiness-label">Readiness index</div>
+        </div>
+      </div>
+
+      <div class="report-grid">
+        <div class="report-card">
+          <div class="report-card-head">
+            <div class="report-card-label">Confidence stability</div>
+            <div class="report-card-icon">
+              <svg class="ico" viewBox="0 0 24 24">
+                <path d="M3 18l4-4 4 3 5-6 5 5"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="report-card-val" id="rc-confidence">—</div>
+          <div class="report-card-sub" id="rc-confidence-sub">Complete a session to see your score.</div>
+          <svg class="spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+            <polyline points="0,20 10,15 18,17 26,10 34,24 42,21 52,8 62,13 72,6 82,15 92,9 100,11" fill="none"
+              stroke="var(--purple)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          </svg>
+        </div>
+        <div class="report-card">
+          <div class="report-card-head">
+            <div class="report-card-label">Stress recovery</div>
+            <div class="report-card-icon" style="color:var(--coral); background:var(--coral-soft);">
+              <svg class="ico" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 7v5l3 2"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="report-card-val" id="rc-recovery">—</div>
+          <div class="report-card-sub" id="rc-recovery-sub">Complete a session to see your score.</div>
+          <svg class="spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+            <polyline points="0,8 10,12 20,22 30,24 40,18 50,26 60,20 70,22 80,16 90,18 100,14" fill="none"
+              stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          </svg>
+        </div>
+        <div class="report-card">
+          <div class="report-card-head">
+            <div class="report-card-label">Persuasion ability</div>
+            <div class="report-card-icon" style="color:var(--green); background:var(--green-soft);">
+              <svg class="ico" viewBox="0 0 24 24">
+                <polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17.5 5.5 21 7 14 2 9.5 9 9 12 2"></polygon>
+              </svg>
+            </div>
+          </div>
+          <div class="report-card-val" id="rc-persuasion">—</div>
+          <div class="report-card-sub" id="rc-persuasion-sub">Complete a session to see your score.</div>
+          <svg class="spark" viewBox="0 0 100 32" preserveAspectRatio="none">
+            <polyline points="0,24 10,22 20,20 30,16 40,17 50,13 60,10 70,11 80,7 90,8 100,5" fill="none"
+              stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      <div class="replay-section">
+        <div class="replay-label">
+          <span>Response replay</span>
+          <span class="q">Question 3 — "Why would a student pay for this over ChatGPT?"</span>
+        </div>
+        <div class="replay-row">
+          <div class="replay-box">
+            <div class="replay-box-head">
+              <span class="replay-box-label">Your response</span>
+              <span class="replay-time">0:48</span>
+            </div>
+            <p>"<span class="filler-hl">Um</span>, well, it's <span class="filler-hl">basically</span> different
+              because… we use voice? And the AI <span class="filler-hl">like</span>, actually talks to you, so it's more
+              real, <span class="filler-hl">I guess</span>."</p>
+          </div>
+          <div class="replay-box ideal">
+            <div class="replay-box-head">
+              <span class="replay-box-label">Ideal response</span>
+              <span class="replay-time">0:22</span>
+            </div>
+            <p>"ChatGPT gives you text. We give you the experience — the pressure, the interruptions, the real-time
+              feedback. That's the training, not the content."</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-footer">
+        <span class="report-footer-note">Next recommended scenario · Job interview (behavioral)</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-magnetic" id="download-report-btn">Download report</button>
+          <button class="btn btn-magnetic" id="share-btn">Share results</button>
+          <button class="btn btn-primary btn-magnetic" id="new-session-btn">Start new session</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /* ============================================================ */
+    /* PLACEHOLDERS — swap before going live                        */
+    /* ============================================================ */
+    const VAPI_PUBLIC_KEY = "3049dce8-4aa8-47a5-aa89-de3586a6a3ed";
+    const VAPI_ASSISTANT_ID = "2be745e4-bfea-4511-9e47-d3cc53216029";
+    // Both from vapi.ai dashboard
+
+    /* ============================================================ */
+    /* CONFIG                                                       */
+    /* ============================================================ */
+
+    const SCENARIOS = [
+      {
+        id: 'investor', label: 'Investor pitch', subtitle: 'VC pressure mode', mode: 'Y Combinator style', aiName: 'Marcus · Partner, Sequoia',
+        firstMessage: "Tell me about your startup. What problem are you solving and why are you the team to solve it?",
+        icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>'
+      },
+      {
+        id: 'interview', label: 'Job interview', subtitle: 'Behavioral + technical', mode: 'FAANG-style loop', aiName: 'Priya · Engineering Manager',
+        firstMessage: "Thanks for coming in. Let's start simple — tell me about yourself and why you're interested in this role.",
+        icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
+      },
+      {
+        id: 'sales', label: 'Sales call', subtitle: 'Objection handling', mode: 'Enterprise · $80k ACV', aiName: 'Daniel · VP Ops, Acme Inc.',
+        firstMessage: "Thanks for making time. Walk me through what you're hoping to solve — I want to make sure we're a fit before we go further.",
+        icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.95.36 1.88.7 2.77a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.31-1.31a2 2 0 0 1 2.11-.45c.89.34 1.82.57 2.77.7A2 2 0 0 1 22 16.92z"></path></svg>'
+      },
+      {
+        id: 'admissions', label: 'Admissions panel', subtitle: 'MBA / university', mode: 'Stanford GSB style', aiName: 'Dr. Chen · Admissions Director',
+        firstMessage: "Welcome. Tell me about yourself — not your resume, but the version you'd share over dinner.",
+        icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><path d="M22 10L12 4 2 10l10 6 10-6z"></path><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"></path></svg>'
+      }
+    ];
+
+    const AI_QUESTIONS = {
+      investor: [
+        "Okay, you've told me what it does — but why would a student pay for this over just using ChatGPT? What's the real difference?",
+        "Walk me through your unit economics. What's CAC, what's LTV, and don't give me a story — give me numbers.",
+        "Who's the most dangerous competitor you're not talking about? Because I can think of three.",
+        "Why now? This idea has existed for two years. What's changed in the market that makes this the moment?",
+        "If I gave you $5M tomorrow, what's the very first thing you spend it on — and don't say 'hiring'."
+      ],
+      interview: [
+        "Tell me about a time you disagreed with your manager. What happened — and what would you do differently today?",
+        "You have ten minutes to design a URL shortener. Walk me through how you'd structure the data layer.",
+        "Why are you leaving your current role? Be honest — I've heard the polished version a hundred times.",
+        "What's a piece of feedback you got recently that genuinely stung? And what did you do with it?",
+        "Describe a project that failed. What did you actually own about that failure?"
+      ],
+      sales: [
+        "Look, your product is fine — but I'm already paying for two tools that do 80% of this. Convince me to add a third line item.",
+        "Your pricing is 40% higher than the alternative we evaluated last quarter. What am I getting for that delta?",
+        "I need to bring this to procurement and they will ask about SOC 2, data residency, and a 90-day out clause. Walk me through it.",
+        "Honestly? My team is exhausted from rollouts. Why should I put them through another one this quarter?",
+        "If I bought this today, what does month one look like? Concretely. Hour by hour for the first week."
+      ],
+      admissions: [
+        "Why an MBA? And specifically — why now, instead of three years ago or three years from now?",
+        "Tell me about a leadership moment you're not proud of. The one you still think about.",
+        "Walk me through your career so far as if it were a single decision, not a series of jobs.",
+        "What would your last manager say is the one thing that genuinely frustrates them about working with you?",
+        "Three years out of this program, what will you have done that you couldn't have done without it?"
+      ]
+    };
+
+    const FILLER_VOCAB = ['you know', 'kind of', 'sort of', 'okay so', 'um', 'uh', 'like', 'basically', 'literally', 'right'];
+
+    const TIMELINE_TEMPLATES = [
+      { kind: 'warn', text: 'Confidence drop detected' },
+      { kind: 'warn', text: 'Speaking too fast' },
+      { kind: 'good', text: 'Strong recovery' },
+      { kind: 'info', text: 'Filler-word cluster' },
+      { kind: 'good', text: 'Clear value-prop hit' },
+      { kind: 'warn', text: 'Long pause (3.2s)' },
+      { kind: 'info', text: 'AI follow-up triggered' }
+    ];
+
+    /* ============================================================ */
+    /* STATE                                                        */
+    /* ============================================================ */
+
+    const state = {
+      activeScenario: 'investor',
+      isRecording: false,
+      elapsedSeconds: 0,
+      confidence: 72,
+      pacing: 78,
+      fillerWords: {},
+      timelineEvents: [],
+      questionIndex: 0,
+      totalWords: 0,
+      answerCount: 0,
+      statCount: 0,
+      dropCount: 0,
+      recoveryCount: 0
+    };
+
+    /* ============================================================ */
+    /* GLOBALS                                                      */
+    /* ============================================================ */
+
+    let externalVol = null;
+    let readinessTarget = 0;
+    let sessionTimerInterval = null;
+    const vapiReady = VAPI_ASSISTANT_ID !== "YOUR_VAPI_ASSISTANT_ID";
+    let vapi = null;
+
+    /* ============================================================ */
+    /* MOUSE TRACKER                                                */
+    /* ============================================================ */
+
+    const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, vx: 0, vy: 0, down: false };
+    let lastMouseX = mouse.x, lastMouseY = mouse.y;
+    window.addEventListener('mousemove', (e) => {
+      mouse.vx = e.clientX - lastMouseX;
+      mouse.vy = e.clientY - lastMouseY;
+      lastMouseX = mouse.x = e.clientX;
+      lastMouseY = mouse.y = e.clientY;
+    });
+    window.addEventListener('mousedown', () => mouse.down = true);
+    window.addEventListener('mouseup', () => mouse.down = false);
+
+    /* ============================================================ */
+    /* CUSTOM CURSOR                                                */
+    /* ============================================================ */
+
+    (function customCursor() {
+      const dot = document.getElementById('cursor-dot');
+      const ring = document.getElementById('cursor-ring');
+      let rx = mouse.x, ry = mouse.y;
+      function loop() {
+        rx += (mouse.x - rx) * 0.18;
+        ry += (mouse.y - ry) * 0.18;
+        dot.style.transform = `translate(${mouse.x}px, ${mouse.y}px) translate(-50%,-50%)`;
+        ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%,-50%)`;
+        requestAnimationFrame(loop);
+      }
+      loop();
+      document.querySelectorAll('button, a, .scenario-card, .report-card').forEach(el => {
+        el.addEventListener('mouseenter', () => ring.classList.add('hover'));
+        el.addEventListener('mouseleave', () => ring.classList.remove('hover'));
+      });
+    })();
+
+    /* ============================================================ */
+    /* BACKGROUND PARTICLE FIELD                                    */
+    /* ============================================================ */
+
+    (function bgParticles() {
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d');
+      let W, H, DPR = Math.min(2, window.devicePixelRatio || 1);
+      let particles = [];
+      function resize() {
+        W = canvas.width = window.innerWidth * DPR;
+        H = canvas.height = window.innerHeight * DPR;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        const count = Math.min(90, Math.floor((window.innerWidth * window.innerHeight) / 18000));
+        particles = [];
+        for (let i = 0; i < count; i++) {
+          particles.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.3 * DPR, vy: (Math.random() - 0.5) * 0.3 * DPR, r: (Math.random() * 1.5 + 0.5) * DPR });
+        }
+      }
+      resize();
+      window.addEventListener('resize', resize);
+      function step() {
+        ctx.clearRect(0, 0, W, H);
+        const mx = mouse.x * DPR, my = mouse.y * DPR;
+        const repelR = 120 * DPR, repelR2 = repelR * repelR;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          const dx = p.x - mx, dy = p.y - my;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < repelR2 && d2 > 0) { const d = Math.sqrt(d2); const force = (1 - d / repelR) * 0.5; p.vx += (dx / d) * force; p.vy += (dy / d) * force; }
+          p.vx *= 0.96; p.vy *= 0.96;
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0) p.x += W; if (p.x > W) p.x -= W;
+          if (p.y < 0) p.y += H; if (p.y > H) p.y -= H;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fillStyle = 'rgba(83,74,183,0.28)'; ctx.fill();
+        }
+        const linkR = 110 * DPR, linkR2 = linkR * linkR;
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const a = particles[i], b = particles[j];
+            const dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+            if (d2 < linkR2) { const alpha = (1 - d2 / linkR2) * 0.18; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.strokeStyle = `rgba(83,74,183,${alpha})`; ctx.lineWidth = 0.6 * DPR; ctx.stroke(); }
+          }
+        }
+        requestAnimationFrame(step);
+      }
+      step();
+    })();
+
+    /* ============================================================ */
+    /* HERO CANVAS                                                  */
+    /* ============================================================ */
+
+    (function heroCanvas() {
+      const canvas = document.getElementById('hero-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let W, H, DPR = Math.min(2, window.devicePixelRatio || 1);
+      const orbs = [];
+      function resize() { const rect = canvas.parentElement.getBoundingClientRect(); W = canvas.width = rect.width * DPR; H = canvas.height = rect.height * DPR; canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px'; }
+      resize(); window.addEventListener('resize', resize);
+      for (let i = 0; i < 4; i++) orbs.push({ x: Math.random(), y: Math.random(), tx: Math.random(), ty: Math.random(), r: 80 + Math.random() * 80, hue: i % 2 ? 'rgba(83,74,183,0.10)' : 'rgba(201,196,241,0.16)', drift: 0.0008 + Math.random() * 0.001 });
+      function step() {
+        ctx.clearRect(0, 0, W, H);
+        const rect = canvas.getBoundingClientRect();
+        const lmx = (mouse.x - rect.left) / rect.width, lmy = (mouse.y - rect.top) / rect.height;
+        for (const o of orbs) {
+          if (Math.abs(o.x - o.tx) < 0.01 && Math.abs(o.y - o.ty) < 0.01) { o.tx = Math.random(); o.ty = Math.random(); }
+          o.x += (o.tx - o.x) * o.drift * 60; o.y += (o.ty - o.y) * o.drift * 60;
+          const inside = lmx >= 0 && lmx <= 1 && lmy >= 0 && lmy <= 1;
+          const px = inside ? (lmx - 0.5) * 30 : 0, py = inside ? (lmy - 0.5) * 30 : 0;
+          const cx = o.x * W + px * DPR, cy = o.y * H + py * DPR;
+          const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, o.r * DPR);
+          grad.addColorStop(0, o.hue); grad.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(cx, cy, o.r * DPR, 0, Math.PI * 2); ctx.fill();
+        }
+        requestAnimationFrame(step);
+      }
+      step();
+    })();
+
+    /* ============================================================ */
+    /* MAGNETIC BUTTONS                                             */
+    /* ============================================================ */
+
+    (function magneticButtons() {
+      document.querySelectorAll('.btn-magnetic').forEach(btn => {
+        let bx = 0, by = 0, tx = 0, ty = 0;
+        function loop() { bx += (tx - bx) * 0.18; by += (ty - by) * 0.18; btn.style.transform = `translate(${bx}px, ${by}px)`; requestAnimationFrame(loop); }
+        loop();
+        btn.addEventListener('mousemove', (e) => { const r = btn.getBoundingClientRect(); const dx = e.clientX - (r.left + r.width / 2); const dy = e.clientY - (r.top + r.height / 2); const d = Math.sqrt(dx * dx + dy * dy); if (d < 80) { tx = dx * 0.35; ty = dy * 0.35; } });
+        btn.addEventListener('mouseleave', () => { tx = 0; ty = 0; });
+      });
+    })();
+
+    /* ============================================================ */
+    /* 3D TILT CARDS                                                */
+    /* ============================================================ */
+
+    function attachTilt(card) {
+      let rx = 0, ry = 0, trx = 0, tryy = 0, raf = null;
+      function loop() { rx += (trx - rx) * 0.18; ry += (tryy - ry) * 0.18; card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg)`; raf = requestAnimationFrame(loop); }
+      card.addEventListener('mouseenter', () => { if (!raf) loop(); });
+      card.addEventListener('mousemove', (e) => { const r = card.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width; const y = (e.clientY - r.top) / r.height; tryy = (x - 0.5) * 8; trx = -(y - 0.5) * 8; card.style.setProperty('--mx', (x * 100) + '%'); card.style.setProperty('--my', (y * 100) + '%'); });
+      card.addEventListener('mouseleave', () => { trx = 0; tryy = 0; setTimeout(() => { if (raf) { cancelAnimationFrame(raf); raf = null; card.style.transform = ''; } }, 400); });
+    }
+
+    /* ============================================================ */
+    /* VOICE ORB — morphing blob + waveform + ripples              */
+    /* ============================================================ */
+
+    (function voiceOrb() {
+      const canvas = document.getElementById('orb-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let DPR = Math.min(2, window.devicePixelRatio || 1);
+      function fit() { const rect = canvas.parentElement.getBoundingClientRect(); const w = Math.min(rect.width, 600); const h = 360; canvas.width = w * DPR; canvas.height = h * DPR; canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; }
+      fit(); window.addEventListener('resize', fit);
+      const BARS = 64;
+      const ripples = [];
+      let lastRipple = 0;
+      let amp = 0.5, ampT = 0.5, phase = 0, blobSeed = Math.random() * 1000;
+
+      function frame(ts) {
+        const W = canvas.width, H = canvas.height, cx = W / 2, cy = H / 2;
+        const base = Math.min(W, H) * 0.18;
+
+        // amplitude update — use external vol from Vapi if available
+        if (externalVol !== null) {
+          ampT = 0.3 + externalVol * 0.7;
+        } else if (state.isRecording) {
+          ampT += (Math.random() - 0.5) * 0.08;
+          if (Math.random() < 0.02) ampT += (Math.random() - 0.3) * 0.5;
+          ampT = Math.max(0.15, Math.min(1.0, ampT));
+        } else {
+          ampT += (0.1 - ampT) * 0.04;
+        }
+        amp += (ampT - amp) * 0.18;
+        phase += 0.015 + amp * 0.03;
+
+        const rect = canvas.getBoundingClientRect();
+        const lmx = (mouse.x - rect.left) / rect.width, lmy = (mouse.y - rect.top) / rect.height;
+        const inside = lmx >= -0.2 && lmx <= 1.2 && lmy >= -0.2 && lmy <= 1.2;
+        const leanX = inside ? (lmx - 0.5) * 22 : 0, leanY = inside ? (lmy - 0.5) * 22 : 0;
+        const ocx = cx + leanX * DPR, ocy = cy + leanY * DPR;
+
+        ctx.clearRect(0, 0, W, H);
+        if (ts - lastRipple > 1200 && state.isRecording && amp > 0.55) { ripples.push({ r: base, alpha: 0.35 }); lastRipple = ts; }
+        for (let i = ripples.length - 1; i >= 0; i--) { const ri = ripples[i]; ri.r += 1.4 * DPR; ri.alpha *= 0.985; ctx.beginPath(); ctx.arc(ocx, ocy, ri.r, 0, Math.PI * 2); ctx.strokeStyle = `rgba(83,74,183,${ri.alpha})`; ctx.lineWidth = 1.2 * DPR; ctx.stroke(); if (ri.alpha < 0.02 || ri.r > Math.max(W, H)) ripples.splice(i, 1); }
+
+        const ringR = base * 1.55;
+        for (let i = 0; i < BARS; i++) {
+          const a = (i / BARS) * Math.PI * 2 + phase * 0.3;
+          const n = Math.sin(a * 3 + phase * 1.7) * 0.5 + Math.sin(a * 5 - phase * 1.3) * 0.3 + Math.sin(a * 2 + phase * 2.4) * 0.2;
+          const h = (0.35 + (n * 0.5 + 0.5) * amp * 1.2) * base * 0.85;
+          ctx.beginPath(); ctx.moveTo(ocx + Math.cos(a) * ringR, ocy + Math.sin(a) * ringR); ctx.lineTo(ocx + Math.cos(a) * (ringR + h), ocy + Math.sin(a) * (ringR + h));
+          ctx.strokeStyle = `rgba(83,74,183,${0.45 + amp * 0.35})`; ctx.lineWidth = 2.2 * DPR; ctx.lineCap = 'round'; ctx.stroke();
+        }
+
+        const POINTS = 96;
+        ctx.beginPath();
+        for (let i = 0; i <= POINTS; i++) {
+          const a = (i / POINTS) * Math.PI * 2;
+          const noise = Math.sin(a * 3 + phase + blobSeed) * 0.12 + Math.sin(a * 5 - phase * 1.3) * 0.08 + Math.sin(a * 7 + phase * 0.7) * 0.05;
+          const r = base * (1 + noise) * (0.92 + amp * 0.18);
+          const x = ocx + Math.cos(a) * r, y = ocy + Math.sin(a) * r;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        const grad = ctx.createRadialGradient(ocx - base * 0.3, ocy - base * 0.3, base * 0.2, ocx, ocy, base * 1.3);
+        grad.addColorStop(0, 'rgba(120,110,220,0.95)'); grad.addColorStop(0.6, 'rgba(83,74,183,0.92)'); grad.addColorStop(1, 'rgba(60,52,137,0.88)');
+        ctx.fillStyle = grad; ctx.shadowColor = 'rgba(83,74,183,0.5)'; ctx.shadowBlur = 40 * DPR; ctx.fill(); ctx.shadowBlur = 0;
+
+        ctx.beginPath(); ctx.arc(ocx - base * 0.35, ocy - base * 0.35, base * 0.28, 0, Math.PI * 2);
+        const hi = ctx.createRadialGradient(ocx - base * 0.35, ocy - base * 0.35, 0, ocx - base * 0.35, ocy - base * 0.35, base * 0.28);
+        hi.addColorStop(0, 'rgba(255,255,255,0.45)'); hi.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = hi; ctx.fill();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.font = `600 ${16 * DPR}px ${getComputedStyle(document.body).fontFamily}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('AI', ocx, ocy + Math.sin(phase * 1.4) * 1.5 * DPR);
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+
+    /* ============================================================ */
+    /* RENDER                                                       */
+    /* ============================================================ */
+
+    function fmtTime(s) { const m = Math.floor(s / 60); const sec = (s % 60).toString().padStart(2, '0'); return `${m}:${sec}`; }
+
+    function render() {
+      const sc = document.getElementById('scenarios');
+      sc.innerHTML = SCENARIOS.map(s => `
+    <div class="scenario-card ${s.id === state.activeScenario ? 'active' : ''}" data-scenario="${s.id}">
+      <div class="scenario-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+      <div class="scenario-card-inner"><div class="scenario-icon">${s.icon}</div><h4>${s.label}</h4><p>${s.subtitle}</p></div>
+    </div>
+  `).join('');
+      sc.querySelectorAll('.scenario-card').forEach(c => attachTilt(c));
+
+      const sScenario = SCENARIOS.find(s => s.id === state.activeScenario);
+      document.getElementById('session-name').textContent = sScenario.label;
+      document.getElementById('session-mode').textContent = sScenario.mode;
+      document.getElementById('ai-name').textContent = sScenario.aiName;
+      document.getElementById('report-scenario').textContent = sScenario.label;
+      document.getElementById('report-mode').textContent = sScenario.mode;
+      document.getElementById('timer').textContent = fmtTime(state.elapsedSeconds);
+      document.getElementById('conf-val').textContent = state.confidence + '%';
+      document.getElementById('conf-bar').style.width = state.confidence + '%';
+      document.getElementById('pace-val').textContent = state.pacing >= 85 ? 'Fast' : state.pacing >= 65 ? 'Good' : 'Slow';
+      document.getElementById('pace-bar').style.width = state.pacing + '%';
+
+      renderFillers();
+      renderTimeline();
+      renderBubble();
+
+      const mic = document.getElementById('mic-btn');
+      mic.classList.toggle('active', state.isRecording);
+      document.querySelector('.mic-hint').innerHTML = state.isRecording
+        ? '<strong>Speaking…</strong> click mic to pause'
+        : '<strong>Click mic to speak</strong>';
+      document.getElementById('orb-caption-text').textContent = state.isRecording
+        ? 'Listening · interpreting tone & pacing'
+        : 'Paused · click mic to resume';
+    }
+
+    function renderFillers(bumpWord) {
+      const total = Object.values(state.fillerWords).reduce((a, b) => a + b, 0);
+      document.getElementById('filler-total').textContent = total === 0 ? '0 detected' : total + ' detected';
+      const pillsEl = document.getElementById('filler-pills');
+      const entries = Object.entries(state.fillerWords).filter(([, n]) => n > 0);
+      if (entries.length === 0) { pillsEl.innerHTML = '<span style="font-size:11px;color:var(--ink-4);">None yet — keep going.</span>'; return; }
+      pillsEl.innerHTML = entries.map(([w, n]) => `<span class="pill" data-word="${w}">${w} ×${n}</span>`).join('');
+      if (bumpWord) { const el = pillsEl.querySelector(`[data-word="${bumpWord}"]`); if (el) { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 500); } }
+    }
+
+    function renderTimeline() {
+      const tl = document.getElementById('timeline-list');
+      if (state.timelineEvents.length === 0) { tl.innerHTML = '<div class="timeline-empty">Events will appear as you speak…</div>'; return; }
+      tl.innerHTML = state.timelineEvents.map(e => `
+    <div class="timeline-item">
+      <span class="timeline-time">${fmtTime(e.t)}</span>
+      <span class="timeline-text"><span class="kind ${e.kind}"></span>${e.text}</span>
+    </div>
+  `).join('');
+    }
+
+    function renderBubble() {
+      const bubble = document.getElementById('ai-bubble');
+      const questions = AI_QUESTIONS[state.activeScenario];
+      const nextQ = questions[state.questionIndex % questions.length];
+      if (bubble.dataset.q === nextQ) return;
+      bubble.classList.add('fading');
+      setTimeout(() => { bubble.textContent = '"' + nextQ + '"'; bubble.dataset.q = nextQ; bubble.classList.remove('fading'); }, 220);
+    }
+
+    /* ============================================================ */
+    /* MODAL SYSTEM                                                 */
+    /* ============================================================ */
+
+    const modalOverlay = document.getElementById('modal-overlay');
+
+    function openModal(contentHTML) {
+      modalOverlay.innerHTML = `<div class="modal-card"><button class="modal-close" onclick="closeModal()">✕</button>${contentHTML}</div>`;
+      modalOverlay.classList.add('open');
+      modalOverlay.addEventListener('click', function handler(e) { if (e.target === modalOverlay) { closeModal(); modalOverlay.removeEventListener('click', handler); } });
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('open');
+      setTimeout(() => { modalOverlay.innerHTML = ''; }, 200);
+    }
+
+    /* ============================================================ */
+    /* TOAST SYSTEM                                                 */
+    /* ============================================================ */
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type} toast-enter`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    /* ============================================================ */
+    /* AUTH SYSTEM                                                  */
+    /* ============================================================ */
+
+    function updateNavForAuth() {
+      const user = JSON.parse(localStorage.getItem('pv_user') || 'null');
+      const navRight = document.getElementById('nav-right');
+      if (user && user.loggedIn) {
+        const initial = user.email[0].toUpperCase();
+        navRight.innerHTML = `
+      <div class="nav-avatar-wrap">
+        <div class="nav-avatar" id="nav-avatar">${initial}</div>
+        <div class="nav-dropdown" id="nav-dropdown">
+          <button onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+    `;
+        document.getElementById('nav-avatar').addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.getElementById('nav-dropdown').classList.toggle('open');
+        });
+        document.addEventListener('click', () => {
+          const dd = document.getElementById('nav-dropdown');
+          if (dd) dd.classList.remove('open');
+        });
+      } else {
+        navRight.innerHTML = `
+      <button class="btn" id="login-btn">Log in</button>
+      <button class="btn btn-primary" id="signup-btn">Get started</button>
+    `;
+        document.getElementById('login-btn').addEventListener('click', () => openAuthModal('login'));
+        document.getElementById('signup-btn').addEventListener('click', () => openAuthModal('signup'));
+      }
+    }
+
+    function signOut() {
+      localStorage.removeItem('pv_user');
+      location.reload();
+    }
+
+    function openAuthModal(tab) {
+      tab = tab || 'login';
+      openModal(`
+    <p class="modal-title">${tab === 'login' ? 'Welcome back' : 'Create account'}</p>
+    <p class="modal-sub">PitchVoice — practice high-stakes conversations</p>
+    <div class="modal-tabs">
+      <button class="modal-tab ${tab === 'login' ? 'active' : ''}" onclick="switchAuthTab('login')">Log in</button>
+      <button class="modal-tab ${tab === 'signup' ? 'active' : ''}" onclick="switchAuthTab('signup')">Sign up</button>
+    </div>
+    <div id="auth-form"></div>
+  `);
+      renderAuthForm(tab);
+    }
+
+    function renderAuthForm(tab) {
+      const el = document.getElementById('auth-form');
+      if (!el) return;
+      if (tab === 'login') {
+        el.innerHTML = `
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="auth-email" placeholder="you@example.com" /></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="auth-password" placeholder="••••••••" /></div>
+      <div class="form-error" id="auth-error"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;" onclick="submitLogin()">Log in</button>
+      <p class="form-link">Don't have an account? <a onclick="switchAuthTab('signup')">Sign up</a></p>
+    `;
+      } else {
+        el.innerHTML = `
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="auth-email" placeholder="you@example.com" /></div>
+      <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="auth-password" placeholder="••••••••" /></div>
+      <div class="form-group"><label class="form-label">Confirm password</label><input type="password" class="form-input" id="auth-confirm" placeholder="••••••••" /></div>
+      <div class="form-error" id="auth-error"></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;" onclick="submitSignup()">Create account</button>
+      <p class="form-link">Already have an account? <a onclick="switchAuthTab('login')">Log in</a></p>
+    `;
+      }
+    }
+
+    function switchAuthTab(tab) {
+      document.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t.textContent.toLowerCase().startsWith(tab === 'login' ? 'log' : 'sign')));
+      renderAuthForm(tab);
+    }
+
+    function submitLogin() {
+      const email = (document.getElementById('auth-email') || {}).value || '';
+      const password = (document.getElementById('auth-password') || {}).value || '';
+      const err = document.getElementById('auth-error');
+      if (!email.trim() || !password) { err.textContent = 'Please fill in all fields.'; err.style.display = 'block'; return; }
+      localStorage.setItem('pv_user', JSON.stringify({ email: email.trim(), loggedIn: true }));
+      closeModal();
+      updateNavForAuth();
+      showToast('Welcome back!', 'success');
+    }
+
+    function submitSignup() {
+      const email = (document.getElementById('auth-email') || {}).value || '';
+      const password = (document.getElementById('auth-password') || {}).value || '';
+      const confirm = (document.getElementById('auth-confirm') || {}).value || '';
+      const err = document.getElementById('auth-error');
+      if (!email.trim() || !password || !confirm) { err.textContent = 'Please fill in all fields.'; err.style.display = 'block'; return; }
+      if (password !== confirm) { err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return; }
+      localStorage.setItem('pv_user', JSON.stringify({ email: email.trim(), loggedIn: true }));
+      closeModal();
+      updateNavForAuth();
+      showToast('Account created! Welcome to PitchVoice.', 'success');
+    }
+
+    /* ============================================================ */
+    /* PRICING MODAL                                                */
+    /* ============================================================ */
+
+    function openPricingModal() {
+      openModal(`
+    <p class="modal-title">Plans & pricing</p>
+    <p class="modal-sub" style="margin-bottom:20px;">Start free. Scale when you're ready.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <h4>Free</h4>
+        <p class="pricing-tag">For individuals getting started</p>
+        <div class="pricing-price">$0</div>
+        <ul class="pricing-features">
+          <li>2 sessions / month</li>
+          <li>Basic Mirror report</li>
+          <li>3 scenarios</li>
+        </ul>
+        <button class="btn" style="width:100%;justify-content:center;" onclick="closeModal();setTimeout(()=>openAuthModal('signup'),50);">Get started</button>
+      </div>
+      <div class="pricing-card featured">
+        <h4>Pro</h4>
+        <p class="pricing-tag">For serious practitioners</p>
+        <div class="pricing-price">$12<sub>/mo</sub></div>
+        <ul class="pricing-features">
+          <li>Unlimited sessions</li>
+          <li>Full Mirror report</li>
+          <li>Pressure Mode</li>
+          <li>Response replay</li>
+          <li>All scenarios</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="closeModal();setTimeout(()=>openAuthModal('signup'),50);">Get started</button>
+      </div>
+      <div class="pricing-card">
+        <h4>Team</h4>
+        <p class="pricing-tag">For teams & organizations</p>
+        <div class="pricing-price">$49<sub>/mo</sub></div>
+        <ul class="pricing-features">
+          <li>Up to 10 seats</li>
+          <li>Team analytics</li>
+          <li>Custom scenarios</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn" style="width:100%;justify-content:center;" onclick="closeModal();setTimeout(()=>openAuthModal('signup'),50);">Get started</button>
+      </div>
+    </div>
+  `);
+    }
+
+    /* ============================================================ */
+    /* DEMO MODAL                                                   */
+    /* ============================================================ */
+
+    function openDemoModal() {
+      openModal(`
+    <p class="modal-title" style="margin-bottom:16px;">PitchVoice in action</p>
+    <div class="demo-video-box">
+      <div class="demo-play-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+      </div>
+      <span style="color:rgba(255,255,255,0.45);font-size:13px;">Demo video coming soon</span>
+    </div>
+    <p style="font-size:12px;color:var(--ink-3);margin-top:14px;text-align:center;">Want early access? <a href="#" style="color:var(--purple);" onclick="closeModal();openAuthModal('signup');return false;">Sign up free →</a></p>
+  `);
+    }
+
+    /* ============================================================ */
+    /* VAPI CONFIG BUILDERS                                         */
+    /* ============================================================ */
+
+    function buildSystemPrompt(scenario) {
+      const questions = AI_QUESTIONS[scenario.id] || [];
+      return `You are ${scenario.aiName}. Conduct a realistic ${scenario.label} simulation. Be direct, challenging, and pressure the user. Ask one question at a time. When their answer is weak, push back hard. Do not be encouraging — be evaluative. Do not compliment the user. Use these questions as a guide but adapt dynamically:\n${questions.join('\n')}`;
+    }
+
+    function buildAssistantConfig(scenario) {
+      return {
+        model: {
+          provider: "anthropic",
+          model: "claude-haiku-4-5-20251001",
+          systemPrompt: buildSystemPrompt(scenario)
+        },
+        voice: {
+          provider: "11labs",
+          voiceId: "21m00Tcm4TlvDq8ikWAM"
+        },
+        firstMessage: scenario.firstMessage,
+        endCallMessage: "Session complete. Review your Mirror Report.",
+        transcriber: {
+          provider: "deepgram",
+          model: "nova-2",
+          language: "en"
+        }
+      };
+    }
+
+    /* ============================================================ */
+    /* TRANSCRIPT ANALYSIS ENGINE                                   */
+    /* ============================================================ */
+
+    function analyzeTranscript(text) {
+      const lower = text.toLowerCase();
+      const words = text.trim().split(/\s+/);
+      const wordCount = words.length;
+      state.totalWords += wordCount;
+      state.answerCount++;
+      if (/\d/.test(text)) state.statCount++;
+
+      let fillersInResponse = 0;
+      for (const filler of FILLER_VOCAB) {
+        if (lower.includes(filler)) {
+          state.fillerWords[filler] = (state.fillerWords[filler] || 0) + 1;
+          fillersInResponse++;
+        }
+      }
+      if (fillersInResponse > 0) renderFillers(FILLER_VOCAB.find(f => lower.includes(f)));
+
+      // Confidence scoring
+      const prevConf = state.confidence;
+      if (wordCount < 15) state.confidence -= 5;
+      if (wordCount > 60) state.confidence += 3;
+      if (/\d/.test(text)) state.confidence += 4;
+      state.confidence -= fillersInResponse * 2;
+      state.confidence = Math.max(40, Math.min(95, state.confidence));
+
+      document.getElementById('conf-val').textContent = state.confidence + '%';
+      document.getElementById('conf-bar').style.width = state.confidence + '%';
+
+      // Pacing
+      if (wordCount > 40) {
+        state.pacing = 92;
+        addTimelineEvent('warn', 'Speaking too fast');
+      } else if (wordCount < 8) {
+        state.pacing = 45;
+        addTimelineEvent('warn', 'Short answer detected');
+      } else {
+        state.pacing = 75;
+      }
+      const paceLabel = state.pacing >= 85 ? 'Fast' : state.pacing >= 65 ? 'Good' : 'Slow';
+      const paceColor = state.pacing >= 65 && state.pacing < 85 ? 'var(--green)' : 'var(--coral)';
+      document.getElementById('pace-val').textContent = paceLabel;
+      document.getElementById('pace-bar').style.width = state.pacing + '%';
+      document.getElementById('pace-bar').style.background = paceColor;
+
+      // Timeline triggers
+      if (state.confidence < 55 && prevConf >= 55) {
+        state.dropCount++;
+        addTimelineEvent('warn', 'Confidence drop detected');
+      }
+      if (state.confidence > 75 && prevConf <= 60) {
+        state.recoveryCount++;
+        addTimelineEvent('good', 'Strong recovery');
+      }
+      if (fillersInResponse >= 3) {
+        addTimelineEvent('warn', 'Multiple filler words');
+      }
+    }
+
+    function addTimelineEvent(kind, text) {
+      state.timelineEvents.unshift({ t: state.elapsedSeconds, kind, text });
+      if (state.timelineEvents.length > 8) state.timelineEvents.pop();
+      renderTimeline();
+    }
+
+    /* ============================================================ */
+    /* WAVEFORM UPDATE (called from Vapi volume-level event)       */
+    /* ============================================================ */
+
+    function updateWaveform(vol) {
+      externalVol = Math.max(0, Math.min(1, vol));
+    }
+
+    /* ============================================================ */
+    /* AI BUBBLE UPDATE (called from Vapi message event)           */
+    /* ============================================================ */
+
+    function updateAIBubble(text) {
+      if (!text) return;
+      const bubble = document.getElementById('ai-bubble');
+      bubble.classList.add('fading');
+      setTimeout(() => { bubble.textContent = '"' + text + '"'; bubble.dataset.q = text; bubble.classList.remove('fading'); }, 220);
+    }
+
+    /* ============================================================ */
+    /* SESSION TIMER                                                */
+    /* ============================================================ */
+
+    function startSessionTimer() {
+      if (sessionTimerInterval) return;
+      sessionTimerInterval = setInterval(() => {
+        state.elapsedSeconds++;
+        document.getElementById('timer').textContent = fmtTime(state.elapsedSeconds);
+      }, 1000);
+    }
+
+    function stopSessionTimer() {
+      if (sessionTimerInterval) { clearInterval(sessionTimerInterval); sessionTimerInterval = null; }
+    }
+
+    /* ============================================================ */
+    /* END SESSION + FINAL SCORE                                    */
+    /* ============================================================ */
+
+    function endSession() {
+      stopSessionTimer();
+      state.isRecording = false;
+      externalVol = null;
+      render();
+
+      const totalFillers = Object.values(state.fillerWords).reduce((a, b) => a + b, 0);
+      const pacingScore = state.pacing >= 65 && state.pacing <= 85 ? 100 : 60;
+      const fillerPenalty = Math.max(40, 100 - totalFillers * 5);
+
+      readinessTarget = Math.round(
+        (state.confidence * 0.4) +
+        (pacingScore * 0.3) +
+        (fillerPenalty * 0.3)
+      );
+      readinessTarget = Math.max(0, Math.min(100, readinessTarget));
+
+      // Confidence stability card
+      const confLevel = state.confidence >= 75 ? 'Strong' : state.confidence >= 60 ? 'Moderate' : 'Needs work';
+      const confClass = state.confidence >= 75 ? 'green' : state.confidence >= 60 ? '' : 'coral';
+      document.getElementById('rc-confidence').textContent = confLevel;
+      document.getElementById('rc-confidence').className = 'report-card-val' + (confClass ? ' ' + confClass : '');
+      document.getElementById('rc-confidence-sub').textContent = `Average confidence: ${state.confidence}%. ${state.dropCount > 0 ? `Dropped ${state.dropCount}x under pressure.` : 'Stayed consistent throughout.'}`;
+
+      // Stress recovery card
+      const recovLabel = state.recoveryCount >= 2 ? 'Strong' : state.recoveryCount === 1 ? 'Moderate' : 'Needs work';
+      const recovClass = state.recoveryCount >= 2 ? 'green' : state.recoveryCount === 0 ? 'coral' : '';
+      document.getElementById('rc-recovery').textContent = recovLabel;
+      document.getElementById('rc-recovery').className = 'report-card-val' + (recovClass ? ' ' + recovClass : '');
+      document.getElementById('rc-recovery-sub').textContent = `${state.recoveryCount} recovery moment${state.recoveryCount !== 1 ? 's' : ''} detected. ${state.dropCount} confidence drop${state.dropCount !== 1 ? 's' : ''} total.`;
+
+      // Persuasion ability card
+      const avgWords = state.answerCount > 0 ? Math.round(state.totalWords / state.answerCount) : 0;
+      const persuLabel = state.statCount >= 2 && avgWords >= 20 ? 'Strong' : state.statCount >= 1 ? 'Developing' : 'Needs work';
+      const persuClass = state.statCount >= 2 && avgWords >= 20 ? 'green' : state.statCount === 0 ? 'coral' : '';
+      document.getElementById('rc-persuasion').textContent = persuLabel;
+      document.getElementById('rc-persuasion').className = 'report-card-val' + (persuClass ? ' ' + persuClass : '');
+      document.getElementById('rc-persuasion-sub').textContent = `Used ${state.statCount} stat${state.statCount !== 1 ? 's' : ''}/number${state.statCount !== 1 ? 's' : ''}. Avg answer: ${avgWords} words.`;
+
+      // Update date and duration in report
+      document.getElementById('report-duration').textContent = fmtTime(state.elapsedSeconds);
+      document.getElementById('report-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      // Scroll and animate score
+      document.querySelector('[data-screen-label="03 Mirror report"]').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => animateReadiness(readinessTarget), 600);
+    }
+
+    function animateReadiness(target) {
+      const el = document.getElementById('readiness-num');
+      const dur = 1400;
+      const start = performance.now();
+      function tick(now) {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(target * eased);
+        if (t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    /* ============================================================ */
+    /* REPORT ACTIONS                                               */
+    /* ============================================================ */
+
+    function downloadReport() {
+      const scenario = SCENARIOS.find(s => s.id === state.activeScenario);
+      const totalFillers = Object.values(state.fillerWords).reduce((a, b) => a + b, 0);
+      const fillerList = Object.entries(state.fillerWords).filter(([, n]) => n > 0).map(([w, n]) => `  ${w} (×${n})`).join('\n') || '  None';
+      const timelineList = state.timelineEvents.map(e => `  ${fmtTime(e.t)} — ${e.text}`).join('\n') || '  No events recorded';
+      const content = `PitchVoice Session Report
+========================
+Date:       ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+Scenario:   ${scenario.label} (${scenario.mode})
+Duration:   ${fmtTime(state.elapsedSeconds)}
+Readiness:  ${readinessTarget} / 100
+
+METRICS
+-------
+Confidence:   ${state.confidence}%
+Pacing:       ${state.pacing >= 85 ? 'Fast' : state.pacing >= 65 ? 'Good' : 'Slow'}
+Filler words: ${totalFillers} detected
+${fillerList}
+
+TIMELINE
+--------
+${timelineList}
+
+Generated by PitchVoice — pitchvoice.app
+`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `pitchvoice-report-${Date.now()}.txt`; a.click();
+      URL.revokeObjectURL(url);
+      showToast('Report downloaded', 'success');
+    }
+
+    function shareResults() {
+      const id = Math.random().toString(36).slice(2, 10);
+      const url = `https://pitchvoice.app/report/${id}`;
+      navigator.clipboard.writeText(url)
+        .then(() => showToast('Link copied to clipboard', 'success'))
+        .catch(() => showToast('Could not copy — try manually', 'error'));
+    }
+
+    function startNewSession() {
+      state.timelineEvents = [];
+      state.fillerWords = {};
+      state.confidence = 72;
+      state.pacing = 78;
+      state.elapsedSeconds = 0;
+      state.questionIndex = 0;
+      state.isRecording = false;
+      state.totalWords = 0;
+      state.answerCount = 0;
+      state.statCount = 0;
+      state.dropCount = 0;
+      state.recoveryCount = 0;
+      readinessTarget = 0;
+      externalVol = null;
+      stopSessionTimer();
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ============================================================ */
+    /* INTERACTIONS                                                 */
+    /* ============================================================ */
+
+    document.getElementById('scenarios').addEventListener('click', (e) => {
+      const card = e.target.closest('.scenario-card');
+      if (!card) return;
+      state.activeScenario = card.dataset.scenario;
+      state.questionIndex = 0;
+      state.timelineEvents = [];
+      state.fillerWords = {};
+      state.confidence = 72;
+      state.elapsedSeconds = 0;
+      render();
+    });
+
+    document.getElementById('mic-btn').addEventListener('click', () => {
+      if (vapiReady && vapi) {
+        if (!state.isRecording) {
+          const scenario = SCENARIOS.find(s => s.id === state.activeScenario);
+          vapi.start(VAPI_ASSISTANT_ID);
+        } else {
+          vapi.stop();
+        }
+      } else {
+        state.isRecording = !state.isRecording;
+        if (state.isRecording) startSessionTimer();
+        else stopSessionTimer();
+        render();
+      }
+    });
+
+    document.getElementById('end-btn').addEventListener('click', () => {
+      if (vapiReady && vapi && state.isRecording) vapi.stop();
+      else endSession();
+    });
+
+    document.querySelector('[data-action="start-session"]').addEventListener('click', () => {
+      document.getElementById('session-screen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('watch-demo-btn').addEventListener('click', openDemoModal);
+
+    document.getElementById('nav-how-link').addEventListener('click', () => {
+      document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('nav-scenarios-link').addEventListener('click', () => {
+      document.getElementById('scenarios').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('nav-pricing-link').addEventListener('click', openPricingModal);
+
+    document.getElementById('download-report-btn').addEventListener('click', downloadReport);
+    document.getElementById('share-btn').addEventListener('click', shareResults);
+    document.getElementById('new-session-btn').addEventListener('click', startNewSession);
+
+    /* ============================================================ */
+    /* INTERSECTION EFFECTS                                         */
+    /* ============================================================ */
+
+    (function observers() {
+      const sparkObs = new IntersectionObserver((entries) => {
+        entries.forEach(en => { if (en.isIntersecting) en.target.classList.add('in-view'); });
+      }, { threshold: 0.4 });
+      document.querySelectorAll('.spark').forEach(s => sparkObs.observe(s));
+
+      const readinessEl = document.getElementById('readiness-num');
+      const scoreObs = new IntersectionObserver((entries) => {
+        entries.forEach(en => {
+          if (!en.isIntersecting) return;
+          if (readinessTarget > 0) animateReadiness(readinessTarget);
+          scoreObs.disconnect();
+        });
+      }, { threshold: 0.5 });
+      scoreObs.observe(readinessEl);
+    })();
+
+    /* ============================================================ */
+    /* SIMULATE SESSION (fallback when Vapi key is placeholder)    */
+    /* ============================================================ */
+
+    function simulateSession() {
+      setInterval(() => {
+        if (!state.isRecording) return;
+        state.elapsedSeconds++;
+        document.getElementById('timer').textContent = fmtTime(state.elapsedSeconds);
+      }, 1000);
+
+      setInterval(() => {
+        if (!state.isRecording) return;
+        const delta = Math.round((Math.random() - 0.45) * 10);
+        state.confidence = Math.max(45, Math.min(94, state.confidence + delta));
+        state.pacing = Math.max(55, Math.min(92, state.pacing + Math.round((Math.random() - 0.5) * 8)));
+        document.getElementById('conf-val').textContent = state.confidence + '%';
+        document.getElementById('conf-bar').style.width = state.confidence + '%';
+        document.getElementById('pace-val').textContent = state.pacing >= 85 ? 'Fast' : state.pacing >= 65 ? 'Good' : 'Slow';
+        document.getElementById('pace-bar').style.width = state.pacing + '%';
+      }, 3000);
+
+      function scheduleFiller() {
+        setTimeout(() => {
+          if (state.isRecording) {
+            const word = FILLER_VOCAB[Math.floor(Math.random() * FILLER_VOCAB.length)];
+            state.fillerWords[word] = (state.fillerWords[word] || 0) + 1;
+            renderFillers(word);
+          }
+          scheduleFiller();
+        }, 4000 + Math.random() * 3000);
+      }
+      scheduleFiller();
+
+      function scheduleTimeline() {
+        setTimeout(() => {
+          if (state.isRecording) {
+            const tpl = TIMELINE_TEMPLATES[Math.floor(Math.random() * TIMELINE_TEMPLATES.length)];
+            state.timelineEvents.unshift({ t: state.elapsedSeconds, kind: tpl.kind, text: tpl.text });
+            if (state.timelineEvents.length > 6) state.timelineEvents.pop();
+            renderTimeline();
+          }
+          scheduleTimeline();
+        }, 12000 + Math.random() * 8000);
+      }
+      scheduleTimeline();
+
+      setInterval(() => {
+        if (!state.isRecording) return;
+        state.questionIndex++;
+        renderBubble();
+      }, 22000);
+    }
+
+    /* ============================================================ */
+    /* VAPI INITIALIZATION + EVENT WIRING                          */
+    /* ============================================================ */
+
+    if (vapiReady) {
+      vapi = new Vapi(VAPI_PUBLIC_KEY);
+
+      vapi.on('call-start', () => {
+        startSessionTimer();
+        state.isRecording = true;
+        render();
+      });
+
+      vapi.on('speech-start', () => {
+        state.isRecording = true;
+        render();
+      });
+
+      vapi.on('speech-end', () => {
+        state.isRecording = false;
+        render();
+      });
+
+      vapi.on('volume-level', (vol) => {
+        updateWaveform(vol);
+      });
+
+      vapi.on('transcript', (t) => {
+        if (t.role === 'user' && t.text) analyzeTranscript(t.text);
+      });
+
+      vapi.on('message', (m) => {
+        if (m.message && m.message.content) updateAIBubble(m.message.content);
+      });
+
+      vapi.on('call-end', () => {
+        externalVol = null;
+        endSession();
+      });
+
+      vapi.on('error', (e) => {
+        showToast('Voice connection error — check microphone permissions', 'error');
+      });
+
+    } else {
+      // Demo mode — simulation runs when mic is toggled
+      simulateSession();
+    }
+
+    /* ============================================================ */
+    /* BOOT                                                         */
+    /* ============================================================ */
+
+    // Set today's date in report
+    document.getElementById('report-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    render();
+    updateNavForAuth();
+  </script>
+</body>
+
+</html>
