@@ -2178,23 +2178,28 @@
 
     async function loadVapi() {
       const urls = [
-        'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.0.0/dist/vapi.sdk.js',
-        'https://unpkg.com/@vapi-ai/web@2.0.0/dist/vapi.sdk.js',
-        'https://cdn.jsdelivr.net/npm/@vapi-ai/web/dist/vapi.sdk.js',
+        'https://cdn.jsdelivr.net/gh/balacodeio/Vapi-Web-UMD@latest/dist/latest/vapi-web-bundle.min.js',
+        'https://cdn.jsdelivr.net/gh/balacodeio/Vapi-Web-UMD@2.1.0/dist/2.1.0/vapi-web-bundle-2.1.0.min.js',
       ];
       for (const src of urls) {
         try {
           await new Promise((resolve, reject) => {
             const s = document.createElement('script');
             s.src = src;
-            s.onload = () => { if (typeof Vapi !== 'undefined') resolve(); else reject(new Error('not defined')); };
-            s.onerror = reject;
+            s.onload = () => { 
+              if (typeof Vapi !== 'undefined') { 
+                console.log('Vapi loaded from:', src);
+                resolve(); 
+              } else { 
+                reject(new Error('Vapi not defined after load')); 
+              }
+            };
+            s.onerror = () => reject(new Error('Script failed: ' + src));
             document.head.appendChild(s);
           });
-          console.log('Vapi loaded from:', src);
           return;
         } catch(e) {
-          console.warn('Failed:', src);
+          console.warn('Failed to load from:', src, e.message);
         }
       }
       throw new Error('All Vapi CDN sources failed');
