@@ -830,7 +830,7 @@
       align-items: center;
       justify-content: center;
       position: relative;
-      transition: transform var(--dur-fast) var(--ease), background var(--dur) var(--ease);
+      transition: transform var(--dur-fast) var(--ease), background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
       box-shadow: 0 12px 28px -10px var(--purple-glow);
     }
 
@@ -840,6 +840,41 @@
 
     .mic-btn:active {
       transform: scale(0.95);
+    }
+
+    /* USER TURN — red, listening */
+    .mic-btn.state-user {
+      background: var(--red);
+      box-shadow: 0 12px 28px -10px rgba(226,75,74,0.5);
+      cursor: pointer;
+    }
+    .mic-btn.state-user:hover { background: #c93d3c; }
+    .mic-btn.state-user::before,
+    .mic-btn.state-user::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--red);
+      opacity: 0;
+      animation: ring 1.8s ease-out infinite;
+    }
+    .mic-btn.state-user::after { animation-delay: 0.9s; }
+
+    /* AI SPEAKING — purple outline pulse, not clickable */
+    .mic-btn.state-ai {
+      background: var(--surface);
+      border: 2px solid var(--purple);
+      color: var(--purple);
+      cursor: default;
+      box-shadow: 0 0 0 0 var(--purple-glow);
+      animation: aiPulse 1.4s ease-in-out infinite;
+    }
+    .mic-btn.state-ai:hover { background: var(--surface); }
+
+    @keyframes aiPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(83,74,183,0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(83,74,183,0); }
     }
 
     .mic-btn.active::before,
@@ -871,11 +906,15 @@
       color: var(--purple);
       font-weight: 500;
     }
+    .mic-hint strong.red { color: var(--red); }
+    .mic-hint strong.muted { color: var(--ink-3); }
 
     .session-right {
       padding: 22px 22px;
       background: var(--surface);
     }
+
+    #end-btn { display: none; }
 
     .live-label {
       font-size: 10px;
@@ -896,6 +935,64 @@
       border-radius: 50%;
       background: var(--green);
       animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    #transcript-feed {
+      max-height: 180px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      border-bottom: 0.5px solid var(--line);
+      padding-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #transcript-feed:empty::after {
+      content: "Transcript will appear here…";
+      font-size: 11px;
+      color: var(--ink-4);
+      font-style: italic;
+    }
+
+    .transcript-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      opacity: 0;
+      animation: txFadeIn 200ms ease forwards;
+    }
+
+    @keyframes txFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .transcript-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 999px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .transcript-badge.ai {
+      background: var(--purple);
+      color: #fff;
+    }
+
+    .transcript-badge.you {
+      background: var(--surface-2);
+      color: var(--ink-2);
+      border: 0.5px solid var(--line-strong);
+    }
+
+    .transcript-text {
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.4;
+      flex: 1;
     }
 
     .metric-row {
@@ -2017,20 +2114,23 @@
           <div class="user-stage">
             <div class="mic-area">
               <button class="mic-btn" id="mic-btn" aria-label="Toggle microphone">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <rect x="9" y="2" width="6" height="12" rx="3"></rect>
-                  <path d="M5 10a7 7 0 0 0 14 0"></path>
-                  <line x1="12" y1="19" x2="12" y2="22"></line>
-                </svg>
+                <span id="mic-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                    <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                    <path d="M5 10a7 7 0 0 0 14 0"></path>
+                    <line x1="12" y1="19" x2="12" y2="22"></line>
+                  </svg>
+                </span>
               </button>
-              <div class="mic-hint"><strong>Click mic to start</strong></div>
+              <div class="mic-hint" id="mic-hint"><strong>Click mic to start session</strong></div>
             </div>
           </div>
         </div>
 
         <aside class="session-right">
-          <div class="live-label">Live analysis</div>
+          <div class="live-label">Live transcript</div>
+          <div id="transcript-feed"></div>
+          <div class="live-label" style="margin-top:16px;">Live analysis</div>
           <div class="metric-row">
             <div class="metric-top">
               <span class="metric-name">Confidence</span>
@@ -2219,22 +2319,22 @@
     const SCENARIOS = [
       {
         id: 'investor', label: 'Investor pitch', subtitle: 'VC pressure mode', mode: 'Y Combinator style', aiName: 'Marcus · Partner, Sequoia',
-        firstMessage: "Tell me about your startup. What problem are you solving and why are you the team to solve it?",
+        firstMessage: "Hi, I'm Marcus, partner at Sequoia. Take a breath — when you're ready, give me your 60-second pitch. I'll push back, but that's how you get better.",
         icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>'
       },
       {
         id: 'interview', label: 'Job interview', subtitle: 'Behavioral + technical', mode: 'FAANG-style loop', aiName: 'Priya · Engineering Manager',
-        firstMessage: "Thanks for coming in. Let's start simple — tell me about yourself and why you're interested in this role.",
+        firstMessage: "Hi, welcome. I'm Priya, engineering manager at a top tech company. This is practice — speak naturally and I'll give you real feedback. Start by telling me about yourself.",
         icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"></rect><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
       },
       {
         id: 'sales', label: 'Sales call', subtitle: 'Objection handling', mode: 'Enterprise · $80k ACV', aiName: 'Daniel · VP Ops, Acme Inc.',
-        firstMessage: "Thanks for making time. Walk me through what you're hoping to solve — I want to make sure we're a fit before we go further.",
+        firstMessage: "Hey, thanks for reaching out. I'm a potential client — I'm busy so make it worth my time. What are you selling and why should I care?",
         icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.95.36 1.88.7 2.77a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.31-1.31a2 2 0 0 1 2.11-.45c.89.34 1.82.57 2.77.7A2 2 0 0 1 22 16.92z"></path></svg>'
       },
       {
         id: 'admissions', label: 'Admissions panel', subtitle: 'MBA / university', mode: 'Stanford GSB style', aiName: 'Dr. Chen · Admissions Director',
-        firstMessage: "Welcome. Tell me about yourself — not your resume, but the version you'd share over dinner.",
+        firstMessage: "Welcome. I'm on the admissions committee. This is your practice interview — there are no wrong answers, just be honest. Start by introducing yourself and why you're applying.",
         icon: '<svg class="ico ico-xl" viewBox="0 0 24 24"><path d="M22 10L12 4 2 10l10 6 10-6z"></path><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"></path></svg>'
       }
     ];
@@ -2299,7 +2399,8 @@
       answerCount: 0,
       statCount: 0,
       dropCount: 0,
-      recoveryCount: 0
+      recoveryCount: 0,
+      sessionActive: false
     };
 
     /* ============================================================ */
@@ -2820,8 +2921,13 @@
     /* ============================================================ */
 
     function buildSystemPrompt(scenario) {
-      const questions = AI_QUESTIONS[scenario.id] || [];
-      return `You are ${scenario.aiName}. Conduct a realistic ${scenario.label} simulation. Be direct, challenging, and pressure the user. Ask one question at a time. When their answer is weak, push back hard. Do not be encouraging — be evaluative. Do not compliment the user. Use these questions as a guide but adapt dynamically:\n${questions.join('\n')}`;
+      const prompts = {
+        investor: "You are Marcus, a senior partner at Sequoia Capital conducting a startup pitch evaluation. Be direct and skeptical. Ask one question at a time. Push back on vague answers and demand specifics. If the user seems confused or nervous, briefly acknowledge it before continuing. Do not repeat questions already answered. Focus on: problem clarity, market size, differentiation, and founder conviction.",
+        interview: "You are Priya, an engineering manager conducting a job interview. Ask behavioral and technical questions one at a time. Challenge weak or vague answers. If the user seems nervous, briefly acknowledge it. Do not repeat questions already answered. Focus on: problem-solving ability, past experience, and communication.",
+        sales: "You are a skeptical but fair potential client on a sales call. Raise realistic objections. Ask about price, competitors, and ROI. Don't be rude but don't be easy to convince either. If the user handles an objection well, acknowledge it and move to the next concern.",
+        admissions: "You are a university admissions panel member. Ask thoughtful questions about motivation, goals, and fit. Challenge generic or rehearsed-sounding answers. Ask follow-up questions based on what the user actually says. Be evaluative but not intimidating."
+      };
+      return prompts[scenario.id] || `You are ${scenario.aiName}. Conduct a realistic ${scenario.label} simulation. Be direct and evaluative. Ask one question at a time.`;
     }
 
     function buildAssistantConfig(scenario) {
@@ -2917,6 +3023,51 @@
     /* WAVEFORM UPDATE (called from Vapi volume-level event)       */
     /* ============================================================ */
 
+    /* MIC BUTTON STATE MACHINE */
+    const MIC_ICONS = {
+      idle: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
+      user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10a7 7 0 0 0 14 0"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>`,
+      ai: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`
+    };
+
+    function setMicState(state) {
+      const btn = document.getElementById('mic-btn');
+      const hint = document.getElementById('mic-hint');
+      const icon = document.getElementById('mic-icon');
+      btn.classList.remove('state-user', 'state-ai', 'active');
+      if (state === 'idle') {
+        icon.innerHTML = MIC_ICONS.idle;
+        hint.innerHTML = '<strong>Click mic to start session</strong>';
+        btn.disabled = false;
+      } else if (state === 'user') {
+        btn.classList.add('state-user');
+        icon.innerHTML = MIC_ICONS.user;
+        hint.innerHTML = '<strong class="red">Listening — click to end</strong>';
+        btn.disabled = false;
+      } else if (state === 'ai') {
+        btn.classList.add('state-ai');
+        icon.innerHTML = MIC_ICONS.ai;
+        hint.innerHTML = '<strong class="muted">AI is speaking…</strong>';
+        btn.disabled = true;
+      }
+    }
+
+    /* TRANSCRIPT FEED */
+    function addTranscriptMessage(role, text) {
+      if (!text || !text.trim()) return;
+      const feed = document.getElementById('transcript-feed');
+      const row = document.createElement('div');
+      row.className = 'transcript-row';
+      const isAI = role === 'assistant';
+      row.innerHTML = `<span class="transcript-badge ${isAI ? 'ai' : 'you'}">${isAI ? 'AI' : 'You'}</span><span class="transcript-text">${text}</span>`;
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    function clearTranscript() {
+      document.getElementById('transcript-feed').innerHTML = '';
+    }
+
     function updateWaveform(vol) {
       externalVol = Math.max(0, Math.min(1, vol));
     }
@@ -2955,7 +3106,10 @@
     function endSession() {
       stopSessionTimer();
       state.isRecording = false;
+      state.sessionActive = false;
       externalVol = null;
+      setMicState('idle');
+      document.getElementById('end-btn').style.display = 'none';
       render();
 
       const totalFillers = Object.values(state.fillerWords).reduce((a, b) => a + b, 0);
@@ -3066,6 +3220,7 @@ Generated by PitchVoice — pitchvoice.app
       state.elapsedSeconds = 0;
       state.questionIndex = 0;
       state.isRecording = false;
+      state.sessionActive = false;
       state.totalWords = 0;
       state.answerCount = 0;
       state.statCount = 0;
@@ -3074,6 +3229,9 @@ Generated by PitchVoice — pitchvoice.app
       readinessTarget = 0;
       externalVol = null;
       stopSessionTimer();
+      clearTranscript();
+      setMicState('idle');
+      document.getElementById('end-btn').style.display = 'none';
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -3098,7 +3256,7 @@ Generated by PitchVoice — pitchvoice.app
       if (vapiReady && vapi) {
         if (!state.isRecording) {
           const scenario = SCENARIOS.find(s => s.id === state.activeScenario);
-          vapi.start(VAPI_ASSISTANT_ID);
+          vapi.start(buildAssistantConfig(scenario));
         } else {
           vapi.stop();
         }
@@ -3111,7 +3269,7 @@ Generated by PitchVoice — pitchvoice.app
     });
 
     document.getElementById('end-btn').addEventListener('click', () => {
-      if (vapiReady && vapi && state.isRecording) vapi.stop();
+      if (vapiReady && vapi && state.sessionActive) vapi.stop();
       else endSession();
     });
 
@@ -3223,6 +3381,10 @@ Generated by PitchVoice — pitchvoice.app
         vapi.on('call-start', () => {
           startSessionTimer();
           state.isRecording = true;
+          state.sessionActive = true;
+          clearTranscript();
+          setMicState('user');
+          document.getElementById('end-btn').style.display = 'inline-flex';
           render();
         });
 
@@ -3233,6 +3395,7 @@ Generated by PitchVoice — pitchvoice.app
 
         vapi.on('speech-end', () => {
           state.isRecording = false;
+          setMicState('user');
           render();
         });
 
@@ -3241,11 +3404,21 @@ Generated by PitchVoice — pitchvoice.app
         });
 
         vapi.on('transcript', (t) => {
+          if (t.transcriptType === 'final') {
+            addTranscriptMessage(t.role, t.transcript);
+          }
           if (t.role === 'user' && t.text) analyzeTranscript(t.text);
         });
 
         vapi.on('message', (m) => {
-          if (m.message && m.message.content) updateAIBubble(m.message.content);
+          if (m.role === 'assistant' || (m.message && m.message.role === 'assistant')) {
+            const text = m.message ? m.message.content : m.content;
+            if (text) {
+              setMicState('ai');
+              updateAIBubble(text);
+              addTranscriptMessage('assistant', text);
+            }
+          }
         });
 
         vapi.on('call-end', () => {
@@ -3270,6 +3443,7 @@ Generated by PitchVoice — pitchvoice.app
     document.getElementById('report-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
     render();
+    setMicState('idle');
     updateNavForAuth();
   </script>
 </body>
