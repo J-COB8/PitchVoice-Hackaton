@@ -1936,6 +1936,112 @@
       }
     }
 
+    /* DANGER BUTTON */
+    .btn-danger {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+      box-shadow: 0 8px 24px -8px rgba(226,75,74,0.45);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn-danger:hover { background: #c93d3c; border-color: #c93d3c; }
+
+    /* AI PORTRAIT */
+    .ai-portrait-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      position: relative;
+      z-index: 2;
+      padding: 24px 0;
+    }
+
+    .ai-portrait-ring {
+      width: 216px;
+      height: 216px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: box-shadow var(--dur) var(--ease);
+    }
+
+    .ai-portrait-ring.ring-ai {
+      animation: portraitPulseAI 1.4s ease-in-out infinite;
+    }
+
+    .ai-portrait-ring.ring-user {
+      animation: portraitPulseUser 1.4s ease-in-out infinite;
+    }
+
+    @keyframes portraitPulseAI {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(83,74,183,0.55), 0 0 0 4px rgba(83,74,183,0.15); }
+      50% { box-shadow: 0 0 0 14px rgba(83,74,183,0), 0 0 0 4px rgba(83,74,183,0.25); }
+    }
+
+    @keyframes portraitPulseUser {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(29,158,117,0.55), 0 0 0 4px rgba(29,158,117,0.15); }
+      50% { box-shadow: 0 0 0 14px rgba(29,158,117,0), 0 0 0 4px rgba(29,158,117,0.25); }
+    }
+
+    .ai-portrait-img {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      box-shadow: 0 8px 32px -12px rgba(83,74,183,0.3);
+      border: 3px solid rgba(255,255,255,0.9);
+    }
+
+    .ai-portrait-info {
+      text-align: center;
+    }
+
+    .ai-portrait-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .ai-portrait-title {
+      font-size: 12px;
+      color: var(--ink-3);
+      margin-top: 2px;
+    }
+
+    /* REPORT LOADING */
+    .report-loading {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 28px;
+      border-bottom: 0.5px solid var(--line);
+      background: var(--purple-soft);
+      font-size: 13px;
+      color: var(--purple-deep);
+      font-weight: 500;
+    }
+
+    .report-loading-spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--purple-line);
+      border-top-color: var(--purple);
+      border-radius: 50%;
+      animation: spin 700ms linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     /* SETUP MODAL */
     .pressure-grid {
       display: grid;
@@ -2155,7 +2261,7 @@
               Combinator style</span></div>
         </div>
         <div class="session-controls">
-          <button class="btn" id="end-btn">End session</button>
+          <button class="btn btn-danger" id="end-btn">End session</button>
           <div class="live-badge">
             <span class="dot-red"></span>
             Live · <span id="timer">0:00</span>
@@ -2172,16 +2278,18 @@
               <div class="ai-bubble" id="ai-bubble">…</div>
             </div>
           </div>
-          <div class="orb-stage">
-            <canvas id="orb-canvas" width="520" height="380"></canvas>
-            <div class="orb-caption">
-              <span class="live-dot"></span>
-              <span id="orb-caption-text">Listening · interpreting tone & pacing</span>
+          <div class="ai-portrait-wrap">
+            <div class="ai-portrait-ring" id="ai-portrait-ring">
+              <img class="ai-portrait-img" id="ai-portrait-img" src="" alt="AI interviewer" />
+            </div>
+            <div class="ai-portrait-info">
+              <div class="ai-portrait-name" id="ai-portrait-name">Marcus</div>
+              <div class="ai-portrait-title" id="ai-portrait-title">Partner, Sequoia Capital</div>
             </div>
           </div>
           <div class="user-stage">
             <div class="mic-area">
-              <button class="mic-btn" id="mic-btn" aria-label="Toggle microphone">
+              <button class="mic-btn" id="mic-btn" aria-label="Start conversation">
                 <span id="mic-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
                     <rect x="9" y="2" width="6" height="12" rx="3"></rect>
@@ -2190,7 +2298,7 @@
                   </svg>
                 </span>
               </button>
-              <div class="mic-hint" id="mic-hint"><strong>Click mic to start session</strong></div>
+              <div class="mic-hint" id="mic-hint"><strong>Start Conversation</strong></div>
             </div>
           </div>
         </div>
@@ -2247,6 +2355,11 @@
           <div class="readiness-score"><span id="readiness-num">0</span><span class="of"> / 100</span></div>
           <div class="readiness-label">Readiness index</div>
         </div>
+      </div>
+
+      <div class="report-loading" id="report-loading">
+        <div class="report-loading-spinner"></div>
+        <span>Generating your AI-powered Mirror Report…</span>
       </div>
 
       <div class="report-grid">
@@ -2379,6 +2492,14 @@
     const VAPI_PUBLIC_KEY = "3049dce8-4aa8-47a5-aa89-de3586a6a3ed";
     const VAPI_ASSISTANT_ID = "2be745e4-bfea-4511-9e47-d3cc53216029";
     // Both from vapi.ai dashboard
+    const ANTHROPIC_API_KEY = "YOUR_ANTHROPIC_API_KEY";
+
+    const PORTRAIT_URLS = {
+      investor:   'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face',
+      interview:  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=face',
+      sales:      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face',
+      admissions: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=face'
+    };
 
     /* ============================================================ */
     /* CONFIG                                                       */
@@ -2469,7 +2590,9 @@
       dropCount: 0,
       recoveryCount: 0,
       sessionActive: false,
-      setup: { company: '', role: '', pressureLevel: 2 }
+      setup: { company: '', role: '', pressureLevel: 2 },
+      transcriptData: [],
+      _endSessionInProgress: false
     };
 
     /* ============================================================ */
@@ -2716,12 +2839,15 @@
     function render() {
       const sc = document.getElementById('scenarios');
       sc.innerHTML = SCENARIOS.map(s => `
-    <div class="scenario-card ${s.id === state.activeScenario ? 'active' : ''}" data-scenario="${s.id}">
+    <div class="scenario-card ${s.id === state.activeScenario ? 'active' : ''}" data-scenario="${s.id}" style="${state.sessionActive ? 'pointer-events:none;opacity:0.5;' : ''}">
       <div class="scenario-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
       <div class="scenario-card-inner"><div class="scenario-icon">${s.icon}</div><h4>${s.label}</h4><p>${s.subtitle}</p></div>
     </div>
   `).join('');
       sc.querySelectorAll('.scenario-card').forEach(c => attachTilt(c));
+
+      const startBtn = document.querySelector('[data-action="start-session"]');
+      if (startBtn) startBtn.disabled = state.sessionActive;
 
       const sScenario = SCENARIOS.find(s => s.id === state.activeScenario);
       document.getElementById('session-name').textContent = sScenario.label;
@@ -2735,18 +2861,10 @@
       document.getElementById('pace-val').textContent = state.pacing >= 85 ? 'Fast' : state.pacing >= 65 ? 'Good' : 'Slow';
       document.getElementById('pace-bar').style.width = state.pacing + '%';
 
+      updatePortrait(state.activeScenario, null);
       renderFillers();
       renderTimeline();
       renderBubble();
-
-      const mic = document.getElementById('mic-btn');
-      mic.classList.toggle('active', state.isRecording);
-      document.querySelector('.mic-hint').innerHTML = state.isRecording
-        ? '<strong>Speaking…</strong> click mic to pause'
-        : '<strong>Click mic to speak</strong>';
-      document.getElementById('orb-caption-text').textContent = state.isRecording
-        ? 'Listening · interpreting tone & pacing'
-        : 'Paused · click mic to resume';
     }
 
     function renderFillers(bumpWord) {
@@ -2777,6 +2895,25 @@
       if (bubble.dataset.q === nextQ) return;
       bubble.classList.add('fading');
       setTimeout(() => { bubble.textContent = '"' + nextQ + '"'; bubble.dataset.q = nextQ; bubble.classList.remove('fading'); }, 220);
+    }
+
+    function updatePortrait(scenarioId, ringState) {
+      const img = document.getElementById('ai-portrait-img');
+      const ring = document.getElementById('ai-portrait-ring');
+      const nameEl = document.getElementById('ai-portrait-name');
+      const titleEl = document.getElementById('ai-portrait-title');
+      if (img && PORTRAIT_URLS[scenarioId]) img.src = PORTRAIT_URLS[scenarioId];
+      if (ring) {
+        ring.classList.remove('ring-ai', 'ring-user');
+        if (ringState === 'ai') ring.classList.add('ring-ai');
+        else if (ringState === 'user') ring.classList.add('ring-user');
+      }
+      const scenario = SCENARIOS.find(s => s.id === scenarioId);
+      if (scenario) {
+        const parts = scenario.aiName.split(' · ');
+        if (nameEl) nameEl.textContent = parts[0] || '';
+        if (titleEl) titleEl.textContent = parts[1] || '';
+      }
     }
 
     /* ============================================================ */
@@ -3184,9 +3321,20 @@
     }
 
     function addTimelineEvent(kind, text) {
-      state.timelineEvents.unshift({ t: state.elapsedSeconds, kind, text });
+      const t = state.elapsedSeconds;
+      state.timelineEvents.unshift({ t, kind, text });
       if (state.timelineEvents.length > 8) state.timelineEvents.pop();
-      renderTimeline();
+      const el = document.getElementById('timeline-list');
+      if (el) {
+        const empty = el.querySelector('.timeline-empty');
+        if (empty) empty.remove();
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `<span class="timeline-time">${fmtTime(t)}</span><span class="timeline-text"><span class="kind ${kind}"></span>${text}</span>`;
+        el.prepend(item);
+        const items = el.querySelectorAll('.timeline-item');
+        if (items.length > 8) items[items.length - 1].remove();
+      }
     }
 
     /* ============================================================ */
@@ -3207,7 +3355,7 @@
       btn.classList.remove('state-user', 'state-ai', 'active');
       if (state === 'idle') {
         icon.innerHTML = MIC_ICONS.idle;
-        hint.innerHTML = '<strong>Click mic to start session</strong>';
+        hint.innerHTML = '<strong>Start Conversation</strong>';
         btn.disabled = false;
       } else if (state === 'user') {
         btn.classList.add('state-user');
@@ -3225,6 +3373,7 @@
     /* TRANSCRIPT FEED */
     function addTranscriptMessage(role, text) {
       if (!text || !text.trim()) return;
+      state.transcriptData.push({ role, text: text.trim() });
       const feed = document.getElementById('transcript-feed');
       const row = document.createElement('div');
       row.className = 'transcript-row';
@@ -3273,12 +3422,16 @@
     /* END SESSION + FINAL SCORE                                    */
     /* ============================================================ */
 
-    function endSession() {
+    async function endSession() {
+      if (state._endSessionInProgress) return;
+      state._endSessionInProgress = true;
+
       stopSessionTimer();
       state.isRecording = false;
       state.sessionActive = false;
       externalVol = null;
       setMicState('idle');
+      updatePortrait(state.activeScenario, null);
       document.getElementById('end-btn').style.display = 'none';
       render();
 
@@ -3287,27 +3440,23 @@
       const fillerPenalty = Math.max(40, 100 - totalFillers * 5);
 
       readinessTarget = Math.round(
-        (state.confidence * 0.4) +
-        (pacingScore * 0.3) +
-        (fillerPenalty * 0.3)
+        (state.confidence * 0.4) + (pacingScore * 0.3) + (fillerPenalty * 0.3)
       );
       readinessTarget = Math.max(0, Math.min(100, readinessTarget));
 
-      // Confidence stability card
+      // Populate report with fallback values immediately
       const confLevel = state.confidence >= 75 ? 'Strong' : state.confidence >= 60 ? 'Moderate' : 'Needs work';
       const confClass = state.confidence >= 75 ? 'green' : state.confidence >= 60 ? '' : 'coral';
       document.getElementById('rc-confidence').textContent = confLevel;
       document.getElementById('rc-confidence').className = 'report-card-val' + (confClass ? ' ' + confClass : '');
       document.getElementById('rc-confidence-sub').textContent = `Average confidence: ${state.confidence}%. ${state.dropCount > 0 ? `Dropped ${state.dropCount}x under pressure.` : 'Stayed consistent throughout.'}`;
 
-      // Stress recovery card
       const recovLabel = state.recoveryCount >= 2 ? 'Strong' : state.recoveryCount === 1 ? 'Moderate' : 'Needs work';
       const recovClass = state.recoveryCount >= 2 ? 'green' : state.recoveryCount === 0 ? 'coral' : '';
       document.getElementById('rc-recovery').textContent = recovLabel;
       document.getElementById('rc-recovery').className = 'report-card-val' + (recovClass ? ' ' + recovClass : '');
       document.getElementById('rc-recovery-sub').textContent = `${state.recoveryCount} recovery moment${state.recoveryCount !== 1 ? 's' : ''} detected. ${state.dropCount} confidence drop${state.dropCount !== 1 ? 's' : ''} total.`;
 
-      // Persuasion ability card
       const avgWords = state.answerCount > 0 ? Math.round(state.totalWords / state.answerCount) : 0;
       const persuLabel = state.statCount >= 2 && avgWords >= 20 ? 'Strong' : state.statCount >= 1 ? 'Developing' : 'Needs work';
       const persuClass = state.statCount >= 2 && avgWords >= 20 ? 'green' : state.statCount === 0 ? 'coral' : '';
@@ -3315,13 +3464,40 @@
       document.getElementById('rc-persuasion').className = 'report-card-val' + (persuClass ? ' ' + persuClass : '');
       document.getElementById('rc-persuasion-sub').textContent = `Used ${state.statCount} stat${state.statCount !== 1 ? 's' : ''}/number${state.statCount !== 1 ? 's' : ''}. Avg answer: ${avgWords} words.`;
 
-      // Update date and duration in report
       document.getElementById('report-duration').textContent = fmtTime(state.elapsedSeconds);
       document.getElementById('report-date').textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-      // Scroll and animate score
+      // Scroll to report and start readiness animation
       document.querySelector('[data-screen-label="03 Mirror report"]').scrollIntoView({ behavior: 'smooth', block: 'start' });
       setTimeout(() => animateReadiness(readinessTarget), 600);
+
+      // Claude-powered analysis
+      if (state.transcriptData.length > 0) {
+        const loading = document.getElementById('report-loading');
+        if (loading) loading.style.display = 'flex';
+        const aiReport = await generateMirrorReport(state.transcriptData);
+        if (loading) loading.style.display = 'none';
+        if (aiReport) {
+          if (typeof aiReport.readinessIndex === 'number') {
+            readinessTarget = Math.max(0, Math.min(100, aiReport.readinessIndex));
+            animateReadiness(readinessTarget);
+          }
+          if (aiReport.confidenceStability) {
+            document.getElementById('rc-confidence').textContent = aiReport.confidenceStability;
+            if (aiReport.topStrength) document.getElementById('rc-confidence-sub').textContent = aiReport.topStrength;
+          }
+          if (aiReport.stressRecovery) {
+            document.getElementById('rc-recovery').textContent = aiReport.stressRecovery;
+            if (aiReport.topImprovement) document.getElementById('rc-recovery-sub').textContent = aiReport.topImprovement;
+          }
+          if (aiReport.persuasionAbility) {
+            document.getElementById('rc-persuasion').textContent = aiReport.persuasionAbility;
+            if (aiReport.idealResponse) document.getElementById('rc-persuasion-sub').textContent = aiReport.idealResponse;
+          }
+        }
+      }
+
+      state._endSessionInProgress = false;
     }
 
     function animateReadiness(target) {
@@ -3335,6 +3511,52 @@
         if (t < 1) requestAnimationFrame(tick);
       }
       requestAnimationFrame(tick);
+    }
+
+    /* ============================================================ */
+    /* CLAUDE MIRROR REPORT GENERATOR                               */
+    /* ============================================================ */
+
+    async function generateMirrorReport(transcriptData) {
+      if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'YOUR_ANTHROPIC_API_KEY') return null;
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1000,
+            messages: [{
+              role: 'user',
+              content: `Analyze this interview/pitch practice transcript and return ONLY a JSON object with this exact structure:
+{
+  "readinessIndex": <number 0-100>,
+  "confidenceStability": "<Top X% or Needs work>",
+  "stressRecovery": "<Strong / Needs work / Average>",
+  "persuasionAbility": "<Strong / Needs work / Average>",
+  "topStrength": "<one sentence>",
+  "topImprovement": "<one sentence>",
+  "idealResponse": "<rewrite the user's weakest answer more effectively in 2 sentences>"
+}
+
+Transcript:
+${transcriptData.map(m => m.role.toUpperCase() + ': ' + m.text).join('\n')}`
+            }]
+          })
+        });
+        const data = await response.json();
+        const text = data.content[0].text;
+        const match = text.match(/\{[\s\S]*\}/);
+        return JSON.parse(match ? match[0] : text);
+      } catch (e) {
+        console.warn('Mirror report generation failed:', e);
+        return null;
+      }
     }
 
     /* ============================================================ */
@@ -3396,11 +3618,14 @@ Generated by PitchVoice — pitchvoice.app
       state.statCount = 0;
       state.dropCount = 0;
       state.recoveryCount = 0;
+      state.transcriptData = [];
+      state._endSessionInProgress = false;
       readinessTarget = 0;
       externalVol = null;
       stopSessionTimer();
       clearTranscript();
       setMicState('idle');
+      updatePortrait(state.activeScenario, null);
       document.getElementById('end-btn').style.display = 'none';
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3423,24 +3648,31 @@ Generated by PitchVoice — pitchvoice.app
     });
 
     document.getElementById('mic-btn').addEventListener('click', () => {
+      if (state.sessionActive) return; // session already active — only End Session button can stop it
       if (vapiReady && vapi) {
-        if (!state.isRecording) {
-          const scenario = SCENARIOS.find(s => s.id === state.activeScenario);
-          vapi.start(buildAssistantConfig(scenario));
-        } else {
-          vapi.stop();
-        }
+        const scenario = SCENARIOS.find(s => s.id === state.activeScenario);
+        vapi.start(buildAssistantConfig(scenario));
       } else {
-        state.isRecording = !state.isRecording;
-        if (state.isRecording) startSessionTimer();
-        else stopSessionTimer();
+        // Simulate mode fallback
+        state.isRecording = true;
+        state.sessionActive = true;
+        clearTranscript();
+        startSessionTimer();
+        setMicState('user');
+        updatePortrait(state.activeScenario, 'user');
+        document.getElementById('end-btn').style.display = 'inline-flex';
         render();
       }
     });
 
     document.getElementById('end-btn').addEventListener('click', () => {
-      if (vapiReady && vapi && state.sessionActive) vapi.stop();
-      else endSession();
+      if (state._endSessionInProgress) return;
+      if (vapiReady && vapi && state.sessionActive) {
+        vapi.stop();
+        // endSession() will be called by call-end event
+      } else {
+        endSession();
+      }
     });
 
     document.querySelector('[data-action="start-session"]').addEventListener('click', () => {
@@ -3552,21 +3784,23 @@ Generated by PitchVoice — pitchvoice.app
           startSessionTimer();
           state.isRecording = true;
           state.sessionActive = true;
+          state._endSessionInProgress = false;
           clearTranscript();
           setMicState('user');
+          updatePortrait(state.activeScenario, 'user');
           document.getElementById('end-btn').style.display = 'inline-flex';
           render();
         });
 
         vapi.on('speech-start', () => {
           state.isRecording = true;
-          render();
+          updatePortrait(state.activeScenario, 'user');
         });
 
         vapi.on('speech-end', () => {
           state.isRecording = false;
           setMicState('user');
-          render();
+          updatePortrait(state.activeScenario, 'user');
         });
 
         vapi.on('volume-level', (vol) => {
@@ -3574,26 +3808,44 @@ Generated by PitchVoice — pitchvoice.app
         });
 
         vapi.on('transcript', (t) => {
-          if (t.transcriptType === 'final') {
-            addTranscriptMessage(t.role, t.transcript);
+          const text = t.transcript || t.text || '';
+          const role = t.role || 'user';
+          const isFinal = t.transcriptType === 'final' || t.type === 'final' || !t.transcriptType;
+          if (isFinal && text.trim()) {
+            addTranscriptMessage(role, text.trim());
+            if (role === 'user') analyzeTranscript(text.trim());
           }
-          if (t.role === 'user' && t.text) analyzeTranscript(t.text);
         });
 
         vapi.on('message', (m) => {
+          // Transcript message fallback
+          if (m.type === 'transcript' && (m.transcriptType === 'final' || !m.transcriptType) && m.transcript) {
+            addTranscriptMessage(m.role || 'user', m.transcript);
+            if ((m.role || 'user') === 'user') analyzeTranscript(m.transcript);
+          }
+          // Conversation update fallback
+          if (m.type === 'conversation-update' && m.conversation && m.conversation.length > 0) {
+            const last = m.conversation[m.conversation.length - 1];
+            if (last && last.content) addTranscriptMessage(last.role, last.content);
+          }
+          // AI speech update — show in bubble and set AI speaking state
+          if (m.type === 'speech-update' && m.role === 'assistant') {
+            updateAIBubble(m.status || '');
+          }
+          // Assistant message text
           if (m.role === 'assistant' || (m.message && m.message.role === 'assistant')) {
             const text = m.message ? m.message.content : m.content;
             if (text) {
               setMicState('ai');
+              updatePortrait(state.activeScenario, 'ai');
               updateAIBubble(text);
-              addTranscriptMessage('assistant', text);
             }
           }
         });
 
         vapi.on('call-end', () => {
           externalVol = null;
-          endSession();
+          if (!state._endSessionInProgress) endSession();
         });
 
         vapi.on('error', (e) => {
